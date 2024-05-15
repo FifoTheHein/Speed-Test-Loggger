@@ -20,7 +20,7 @@ namespace SpeedTest
             InitializeComponent();
 
             // Initialize FormSettings properties
-            this.Font = SystemFonts.MenuFont;
+            Font = SystemFonts.MenuFont;
 
             // Initialize child controls
             RadioAutoDownload.Checked = Settings.Default.AutoDownload;
@@ -87,14 +87,14 @@ namespace SpeedTest
         /// <summary>Occurs when the Log File button is clicked.</summary>
         private void ButtonLogFile_Click(object sender, EventArgs e)
         {
-            using (SaveFileDialog sfd = new SaveFileDialog())
+            using (var sfd = new SaveFileDialog())
             {
                 sfd.AutoUpgradeEnabled = true;
                 sfd.CheckPathExists = true;
-                sfd.FileName = "SpeedTestLog.csv";
-                sfd.Filter = "Comma Separated Values (*.csv)|*.csv";
+                sfd.FileName = "SpeedTestLog2.csv";
+                sfd.Filter = @"Comma Separated Values (*.csv)|*.csv";
                 sfd.InitialDirectory = Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData) + Path.DirectorySeparatorChar + "SpeedTest";
-                sfd.Title = "Select Log File";
+                sfd.Title = @"Select Log File";
 
                 if (sfd.ShowDialog(this).Equals(DialogResult.OK)) TextLogFile.Text = sfd.FileName;
             }

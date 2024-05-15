@@ -38,6 +38,7 @@
             this.ColumnIP = ((System.Windows.Forms.ColumnHeader)(new System.Windows.Forms.ColumnHeader()));
             this.ColumnMessage = ((System.Windows.Forms.ColumnHeader)(new System.Windows.Forms.ColumnHeader()));
             this.ColumnStatus = ((System.Windows.Forms.ColumnHeader)(new System.Windows.Forms.ColumnHeader()));
+            this.ColumnFileName = ((System.Windows.Forms.ColumnHeader)(new System.Windows.Forms.ColumnHeader()));
             this.ImageListLog = new System.Windows.Forms.ImageList(this.components);
             this.StatusMain = new System.Windows.Forms.StatusBar();
             this.IconMain = new System.Windows.Forms.NotifyIcon(this.components);
@@ -78,7 +79,7 @@
             // ContainerMain
             // 
             this.ContainerMain.Dock = System.Windows.Forms.DockStyle.Fill;
-            this.ContainerMain.Location = new System.Drawing.Point(0, 72);
+            this.ContainerMain.Location = new System.Drawing.Point(0, 75);
             this.ContainerMain.Name = "ContainerMain";
             this.ContainerMain.Orientation = System.Windows.Forms.Orientation.Horizontal;
             // 
@@ -91,8 +92,8 @@
             // 
             this.ContainerMain.Panel2.Controls.Add(this.ListLog);
             this.ContainerMain.Panel2MinSize = 0;
-            this.ContainerMain.Size = new System.Drawing.Size(644, 348);
-            this.ContainerMain.SplitterDistance = 171;
+            this.ContainerMain.Size = new System.Drawing.Size(922, 506);
+            this.ContainerMain.SplitterDistance = 247;
             this.ContainerMain.TabIndex = 0;
             // 
             // GraphMain
@@ -101,7 +102,7 @@
             this.GraphMain.Font = new System.Drawing.Font("Segoe UI", 8F);
             this.GraphMain.Location = new System.Drawing.Point(0, 0);
             this.GraphMain.Name = "GraphMain";
-            this.GraphMain.Size = new System.Drawing.Size(644, 171);
+            this.GraphMain.Size = new System.Drawing.Size(922, 247);
             this.GraphMain.TabIndex = 2;
             // 
             // ListLog
@@ -112,13 +113,14 @@
             this.ColumnSpeed,
             this.ColumnIP,
             this.ColumnMessage,
-            this.ColumnStatus});
+            this.ColumnStatus,
+            this.ColumnFileName});
             this.ListLog.Dock = System.Windows.Forms.DockStyle.Fill;
             this.ListLog.FullRowSelect = true;
             this.ListLog.HideSelection = false;
             this.ListLog.Location = new System.Drawing.Point(0, 0);
             this.ListLog.Name = "ListLog";
-            this.ListLog.Size = new System.Drawing.Size(644, 173);
+            this.ListLog.Size = new System.Drawing.Size(922, 255);
             this.ListLog.SmallImageList = this.ImageListLog;
             this.ListLog.TabIndex = 2;
             this.ListLog.UseCompatibleStateImageBehavior = false;
@@ -132,12 +134,12 @@
             // ColumnSpeed
             // 
             this.ColumnSpeed.Text = "Speed";
-            this.ColumnSpeed.Width = 120;
+            this.ColumnSpeed.Width = 86;
             // 
             // ColumnIP
             // 
             this.ColumnIP.Text = "IP";
-            this.ColumnIP.Width = 120;
+            this.ColumnIP.Width = 98;
             // 
             // ColumnMessage
             // 
@@ -149,6 +151,11 @@
             this.ColumnStatus.Text = "Status";
             this.ColumnStatus.Width = 110;
             // 
+            // ColumnFileName
+            // 
+            this.ColumnFileName.Text = "Test File Name";
+            this.ColumnFileName.Width = 294;
+            // 
             // ImageListLog
             // 
             this.ImageListLog.ImageStream = ((System.Windows.Forms.ImageListStreamer)(resources.GetObject("ImageListLog.ImageStream")));
@@ -159,9 +166,9 @@
             // 
             // StatusMain
             // 
-            this.StatusMain.Location = new System.Drawing.Point(0, 420);
+            this.StatusMain.Location = new System.Drawing.Point(0, 581);
             this.StatusMain.Name = "StatusMain";
-            this.StatusMain.Size = new System.Drawing.Size(644, 22);
+            this.StatusMain.Size = new System.Drawing.Size(922, 22);
             this.StatusMain.TabIndex = 1;
             this.StatusMain.Text = "Ready";
             // 
@@ -192,7 +199,7 @@
             this.ToolBarMain.Location = new System.Drawing.Point(0, 0);
             this.ToolBarMain.Name = "ToolBarMain";
             this.ToolBarMain.ShowToolTips = true;
-            this.ToolBarMain.Size = new System.Drawing.Size(644, 72);
+            this.ToolBarMain.Size = new System.Drawing.Size(922, 75);
             this.ToolBarMain.TabIndex = 2;
             this.ToolBarMain.Wrappable = false;
             this.ToolBarMain.ButtonClick += new System.Windows.Forms.ToolBarButtonClickEventHandler(this.ToolBarMain_ButtonClick);
@@ -398,11 +405,12 @@
             // FormMain
             // 
             this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.None;
-            this.ClientSize = new System.Drawing.Size(644, 442);
+            this.ClientSize = new System.Drawing.Size(922, 603);
             this.Controls.Add(this.ContainerMain);
             this.Controls.Add(this.StatusMain);
             this.Controls.Add(this.ToolBarMain);
             this.Icon = ((System.Drawing.Icon)(resources.GetObject("$this.Icon")));
+            this.MinimumSize = new System.Drawing.Size(940, 650);
             this.Name = "FormMain";
             this.StartPosition = System.Windows.Forms.FormStartPosition.CenterScreen;
             this.Text = "Speed Test Loggger for Windows - http://loggger.com";
@@ -456,7 +464,7 @@
         private System.Windows.Forms.ListView ListLog;
         private System.Windows.Forms.ToolBar ToolBarMain;
         private System.Windows.Forms.Timer TimerGraph;
-
+        private System.Windows.Forms.ColumnHeader ColumnFileName;
     }
 }
 

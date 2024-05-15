@@ -62,7 +62,7 @@
             // 
             // TextLogFile
             // 
-            this.TextLogFile.Anchor = ((System.Windows.Forms.AnchorStyles)(((System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Left) 
+            this.TextLogFile.Anchor = ((System.Windows.Forms.AnchorStyles)(((System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Left)
             | System.Windows.Forms.AnchorStyles.Right)));
             this.TextLogFile.BackColor = System.Drawing.SystemColors.Window;
             this.TextLogFile.Location = new System.Drawing.Point(110, 372);
@@ -94,15 +94,19 @@
             // 
             // ComboCheckConnection
             // 
-            this.ComboCheckConnection.Anchor = ((System.Windows.Forms.AnchorStyles)(((System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Left) 
+            this.ComboCheckConnection.Anchor = ((System.Windows.Forms.AnchorStyles)(((System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Left)
             | System.Windows.Forms.AnchorStyles.Right)));
             this.ComboCheckConnection.DropDownStyle = System.Windows.Forms.ComboBoxStyle.DropDownList;
             this.ComboCheckConnection.FlatStyle = System.Windows.Forms.FlatStyle.System;
             this.ComboCheckConnection.FormattingEnabled = true;
             this.ComboCheckConnection.Items.AddRange(new object[] {
-            "10 Minutes",
-            "30 Minutes",
-            "1 Hour"});
+                "15 Seconds",
+                "30 Seconds",
+                "1 Minute",
+                "5 Minutes",
+                "10 Minutes",
+                "30 Minutes",
+                "1 Hour"});
             this.ComboCheckConnection.Location = new System.Drawing.Point(122, 409);
             this.ComboCheckConnection.Name = "ComboCheckConnection";
             this.ComboCheckConnection.Size = new System.Drawing.Size(82, 21);
@@ -120,7 +124,7 @@
             // 
             // GroupTimeFormat
             // 
-            this.GroupTimeFormat.Anchor = ((System.Windows.Forms.AnchorStyles)(((System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Left) 
+            this.GroupTimeFormat.Anchor = ((System.Windows.Forms.AnchorStyles)(((System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Left)
             | System.Windows.Forms.AnchorStyles.Right)));
             this.GroupTimeFormat.Controls.Add(this.RadioUSFormat);
             this.GroupTimeFormat.Controls.Add(this.RadioEUFormat);
@@ -217,7 +221,7 @@
             // 
             // TextDownloadURL
             // 
-            this.TextDownloadURL.Anchor = ((System.Windows.Forms.AnchorStyles)(((System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Left) 
+            this.TextDownloadURL.Anchor = ((System.Windows.Forms.AnchorStyles)(((System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Left)
             | System.Windows.Forms.AnchorStyles.Right)));
             this.TextDownloadURL.Enabled = false;
             this.TextDownloadURL.Location = new System.Drawing.Point(98, 43);
@@ -227,7 +231,7 @@
             // 
             // GroupDownloadURL
             // 
-            this.GroupDownloadURL.Anchor = ((System.Windows.Forms.AnchorStyles)(((System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Left) 
+            this.GroupDownloadURL.Anchor = ((System.Windows.Forms.AnchorStyles)(((System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Left)
             | System.Windows.Forms.AnchorStyles.Right)));
             this.GroupDownloadURL.Controls.Add(this.RadioCustomDownload);
             this.GroupDownloadURL.Controls.Add(this.RadioAutoDownload);
@@ -267,7 +271,7 @@
             // 
             // GroupSpeedUnits
             // 
-            this.GroupSpeedUnits.Anchor = ((System.Windows.Forms.AnchorStyles)(((System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Left) 
+            this.GroupSpeedUnits.Anchor = ((System.Windows.Forms.AnchorStyles)(((System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Left)
             | System.Windows.Forms.AnchorStyles.Right)));
             this.GroupSpeedUnits.Controls.Add(this.RadioBytesPerSecond);
             this.GroupSpeedUnits.Controls.Add(this.RadioBitsPerSecond);
@@ -316,7 +320,7 @@
             // 
             // GroupAPIURL
             // 
-            this.GroupAPIURL.Anchor = ((System.Windows.Forms.AnchorStyles)(((System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Left) 
+            this.GroupAPIURL.Anchor = ((System.Windows.Forms.AnchorStyles)(((System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Left)
             | System.Windows.Forms.AnchorStyles.Right)));
             this.GroupAPIURL.Controls.Add(this.TextIPDetectURL);
             this.GroupAPIURL.Controls.Add(this.RadioCustomIPDetect);
@@ -331,7 +335,7 @@
             // 
             // TextIPDetectURL
             // 
-            this.TextIPDetectURL.Anchor = ((System.Windows.Forms.AnchorStyles)(((System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Left) 
+            this.TextIPDetectURL.Anchor = ((System.Windows.Forms.AnchorStyles)(((System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Left)
             | System.Windows.Forms.AnchorStyles.Right)));
             this.TextIPDetectURL.Enabled = false;
             this.TextIPDetectURL.Location = new System.Drawing.Point(98, 43);
