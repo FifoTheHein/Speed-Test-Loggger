@@ -67,7 +67,7 @@ jobs:
           New-Item -ItemType Directory -Force '_site\Application Files' | Out-Null
           # MSBuild always names the ClickOnce bootstrapper setup.exe
           Copy-Item "$pub\setup.exe" '_site\Logger_Setup.exe'
-          Copy-Item "$pub\SpeedTestLoggger.application", 'deploy\index.html' _site
+          Copy-Item "$pub\SpeedTestLoggger.application", 'deploy\index.html', 'deploy\icon.png' _site
           Copy-Item "$pub\Application Files\$folder" '_site\Application Files' -Recurse
 
       - uses: actions/upload-pages-artifact@v5

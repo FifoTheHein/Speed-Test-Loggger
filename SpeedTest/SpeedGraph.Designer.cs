@@ -33,19 +33,19 @@
             // 
             // ComboTimeScale
             // 
-            this.ComboTimeScale.Anchor = ((System.Windows.Forms.AnchorStyles)((System.Windows.Forms.AnchorStyles.Bottom | System.Windows.Forms.AnchorStyles.Right)));
+            this.ComboTimeScale.Anchor = ((System.Windows.Forms.AnchorStyles)((System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Right)));
             this.ComboTimeScale.DropDownStyle = System.Windows.Forms.ComboBoxStyle.DropDownList;
             this.ComboTimeScale.FlatStyle = System.Windows.Forms.FlatStyle.System;
             this.ComboTimeScale.FormattingEnabled = true;
             this.ComboTimeScale.Items.AddRange(new object[] {
-            "10 Minutes",
-            "30 Minutes",
-            "1 Hour",
-            "12 Hours",
-            "24 Hours"});
-            this.ComboTimeScale.Location = new System.Drawing.Point(30, 116);
+            "10 minutes",
+            "30 minutes",
+            "1 hour",
+            "12 hours",
+            "24 hours"});
+            this.ComboTimeScale.Location = new System.Drawing.Point(30, 22);
             this.ComboTimeScale.Name = "ComboTimeScale";
-            this.ComboTimeScale.Size = new System.Drawing.Size(107, 21);
+            this.ComboTimeScale.Size = new System.Drawing.Size(120, 23);
             this.ComboTimeScale.TabIndex = 0;
             this.ComboTimeScale.SelectedIndexChanged += new System.EventHandler(this.ComboTimeScale_SelectedIndexChanged);
             // 

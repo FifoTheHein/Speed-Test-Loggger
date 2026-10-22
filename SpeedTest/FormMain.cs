@@ -72,18 +72,21 @@ namespace SpeedTest
 
             // Initialize FormMain properties
             this.ClientSize = new Size(660, 480);
-            this.Font = SystemFonts.MenuFont;
+            this.Font = Theme.UI;
 
             // Initialize tray icon
-            IconMain.ContextMenu = MenuMain;
+            IconMain.ContextMenuStrip = MenuMain;
 
             // Initialize Menu/ToolBar
             MenuShowSuccessful.Checked = Settings.Default.ShowSuccessful;
             MenuShowStatusChanges.Checked = Settings.Default.ShowStatusChanges;
             MenuShowErrors.Checked = Settings.Default.ShowErrors;
-            ToolBarShowSuccessful.Pushed = MenuShowSuccessful.Checked;
-            ToolBarShowStatusChanges.Pushed = MenuShowStatusChanges.Checked;
-            ToolBarShowErrors.Pushed = MenuShowErrors.Checked;
+            ToolBarShowSuccessful.Checked = MenuShowSuccessful.Checked;
+            ToolBarShowStatusChanges.Checked = MenuShowStatusChanges.Checked;
+            ToolBarShowErrors.Checked = MenuShowErrors.Checked;
+
+            ApplyTheme();
+            UpdateLoggingStatus();
         }
         #endregion
         #region Overrides
@@ -147,18 +150,6 @@ namespace SpeedTest
             Global.SetWindowTheme(ListLog.Handle, "Explorer", null);
             Global.SendMessage(ListLog.Handle, 0x1000 + 54, 0x00010000, 0x00010000); // LVS_EX_DOUBLEBUFFERED
 
-            // Extend frame if Desktop Composition (Aero) is enabled
-            if (Global.CompositionEnabled && !Global.IsWindows8)
-            {
-                BackColor = Color.Black;
-                ContainerMain.BackColor = SystemColors.Control;
-                
-                Global.ExtendFrame(this.Handle, new System.Drawing.Printing.Margins(0, 0, ToolBarMain.Height, 0));
-
-                //if (Global.IsWindows8) Global.SetWindowTheme(ToolBarMain.Handle, "TrayNotifyComposited", null);
-                Global.SetWindowTheme(ToolBarMain.Handle, "Media", null);
-            }
-
             // Start logging
             if (p_StartLogging) MenuStartLogging_Click(this, EventArgs.Empty);
 
@@ -199,6 +190,7 @@ namespace SpeedTest
             MenuStopLogging.Enabled = ToolBarStopLogging.Enabled;
             MenuTest.Enabled = ToolBarTest.Enabled;
             StatusMain.Text = "Started logging at: " + Global.ConvertTime(DateTime.Now);
+            UpdateLoggingStatus(true);
 
             // Create a new ListViewItem object
             ListViewItem item = new ListViewItem(Global.ConvertTime(DateTime.Now));//Time
@@ -239,6 +231,7 @@ namespace SpeedTest
             MenuStopLogging.Enabled = ToolBarStopLogging.Enabled;
             MenuTest.Enabled = ToolBarTest.Enabled;
             StatusMain.Text = "Stopped logging at: " + Global.ConvertTime(DateTime.Now);
+            UpdateLoggingStatus(false);
 
             // Create a new ListViewItem object
             ListViewItem item = new ListViewItem(Global.ConvertTime(DateTime.Now));//Time
@@ -265,7 +258,7 @@ namespace SpeedTest
         private void MenuShowSuccessful_Click(object sender, EventArgs e)
         {
             MenuShowSuccessful.Checked = !MenuShowSuccessful.Checked;
-            ToolBarShowSuccessful.Pushed = MenuShowSuccessful.Checked;
+            ToolBarShowSuccessful.Checked = MenuShowSuccessful.Checked;
 
             UpdateLog();
         }
@@ -274,7 +267,7 @@ namespace SpeedTest
         private void MenuShowStatusChanges_Click(object sender, EventArgs e)
         {
             MenuShowStatusChanges.Checked = !MenuShowStatusChanges.Checked;
-            ToolBarShowStatusChanges.Pushed = MenuShowStatusChanges.Checked;
+            ToolBarShowStatusChanges.Checked = MenuShowStatusChanges.Checked;
 
             UpdateLog();
         }
@@ -283,7 +276,7 @@ namespace SpeedTest
         private void MenuShowErrors_Click(object sender, EventArgs e)
         {
             MenuShowErrors.Checked = !MenuShowErrors.Checked;
-            ToolBarShowErrors.Pushed = MenuShowErrors.Checked;
+            ToolBarShowErrors.Checked = MenuShowErrors.Checked;
 
             UpdateLog();
         }
@@ -294,8 +287,15 @@ namespace SpeedTest
             // Create a new FormSettings dialog and display it to the user
             using (FormSettings fs = new FormSettings())
             {
-                // Apply the auto-start setting straight away, not only when the app closes
-                if (fs.ShowDialog(this) == DialogResult.OK) UpdateAutoStart();
+                if (fs.ShowDialog(this) == DialogResult.OK)
+                {
+                    // Apply the auto-start setting straight away, not only when the app closes
+                    UpdateAutoStart();
+
+                    // The interval, units or time format may have changed
+                    UpdateLoggingStatus();
+                    GraphMain.Invalidate();
+                }
             }
         }
 
@@ -318,41 +318,6 @@ namespace SpeedTest
         {
             // Exit the application
             Application.Exit();
-        }
-
-        /// <summary>Occurs when a ToolBarButton on the ToolBar is clicked.</summary>
-        private void ToolBarMain_ButtonClick(object sender, ToolBarButtonClickEventArgs e)
-        {
-            switch (e.Button.ImageIndex)
-            {
-                case 0: // Start Logging
-                    MenuStartLogging_Click(this, EventArgs.Empty);
-                    break;
-                case 1: // Stop Logging
-                    MenuStopLogging_Click(this, EventArgs.Empty);
-                    break;
-                case 2: // Test Now
-                    MenuTest_Click(this, EventArgs.Empty);
-                    break;
-                case 3: // Show Successful Logs
-                    MenuShowSuccessful_Click(this, EventArgs.Empty);
-                    break;
-                case 4: // Show Status Changes
-                    MenuShowStatusChanges_Click(this, EventArgs.Empty);
-                    break;
-                case 5: // Show Error Messages
-                    MenuShowErrors_Click(this, EventArgs.Empty);
-                    break;
-                case 6: // Configuration Settings
-                    MenuSettings_Click(this, EventArgs.Empty);
-                    break;
-                case 7: // Get Help Online
-                    MenuHelp_Click(this, EventArgs.Empty);
-                    break;
-                case 8: // About Logger
-                    MenuAbout_Click(this, EventArgs.Empty);
-                    break;
-            }
         }
 
         /// <summary>Occurs when the NotifyIcon is double-clicked.</summary>
@@ -510,6 +475,67 @@ namespace SpeedTest
         }
         #endregion
         #region Private Methods
+        /// <summary>Gives the window its look: flat toolbar, status bar and tray menu, and line icons where Windows has the icon font.</summary>
+        private void ApplyTheme()
+        {
+            FlatRenderer renderer = new FlatRenderer();
+            ToolStripMain.Renderer = renderer;
+            StatusStripMain.Renderer = renderer;
+            MenuMain.Renderer = renderer;
+
+            // Toolbar icons, falling back to the original images (same order in ImageListMain)
+            SetIcon(ToolBarStartLogging, Theme.GlyphPlay, Theme.Success, 0);
+            SetIcon(ToolBarStopLogging, Theme.GlyphStop, Theme.Danger, 1);
+            SetIcon(ToolBarTest, Theme.GlyphRefresh, Theme.Accent, 2);
+            SetIcon(ToolBarShowSuccessful, Theme.GlyphCompleted, Theme.Success, 3);
+            SetIcon(ToolBarShowStatusChanges, Theme.GlyphGlobe, Theme.Accent, 4);
+            SetIcon(ToolBarShowErrors, Theme.GlyphError, Theme.Danger, 5);
+            SetIcon(ToolBarSettings, Theme.GlyphSettings, Theme.Text, 6);
+            SetIcon(ToolBarHelp, Theme.GlyphHelp, Theme.Text, 7);
+            SetIcon(ToolBarAbout, Theme.GlyphInfo, Theme.Text, 8);
+
+            // Tray menu icons
+            MenuStartLogging.Image = Theme.Icon(Theme.GlyphPlay, 16, Theme.Success);
+            MenuStopLogging.Image = Theme.Icon(Theme.GlyphStop, 16, Theme.Danger);
+            MenuTest.Image = Theme.Icon(Theme.GlyphRefresh, 16, Theme.Accent);
+            MenuSettings.Image = Theme.Icon(Theme.GlyphSettings, 16, Theme.Text);
+            MenuHelp.Image = Theme.Icon(Theme.GlyphHelp, 16, Theme.Text);
+            MenuAbout.Image = Theme.Icon(Theme.GlyphInfo, 16, Theme.Text);
+
+            // List icons: successful, status change, error (the ImageIndex values the log uses)
+            if (Theme.HasIcons)
+            {
+                ImageListLog.Images.Clear();
+                ImageListLog.ColorDepth = ColorDepth.Depth32Bit;
+                ImageListLog.ImageSize = new Size(16, 16);
+                ImageListLog.Images.Add(Theme.Icon(Theme.GlyphCompleted, 16, Theme.Success));
+                ImageListLog.Images.Add(Theme.Icon(Theme.GlyphGlobe, 16, Theme.Accent));
+                ImageListLog.Images.Add(Theme.Icon(Theme.GlyphError, 16, Theme.Danger));
+            }
+        }
+
+        /// <summary>Sets a toolbar button's line icon, or the original image when Windows has no icon font.</summary>
+        private void SetIcon(ToolStripItem item, char glyph, Color color, int fallbackIndex)
+        {
+            item.Image = Theme.Icon(glyph, 20, color) ?? ImageListMain.Images[fallbackIndex];
+        }
+
+        /// <summary>Shows in the status bar whether the logger is running, and how often it tests.</summary>
+        private void UpdateLoggingStatus()
+        {
+            UpdateLoggingStatus(p_TimerLog != null);
+        }
+
+        /// <summary>Shows in the status bar whether the logger is running, and how often it tests.</summary>
+        private void UpdateLoggingStatus(bool logging)
+        {
+            string[] intervals = { "15 seconds", "30 seconds", "1 minute", "5 minutes", "10 minutes", "30 minutes", "1 hour" };
+            int interval = Settings.Default.CheckConnection;
+
+            StatusLogging.Image = Theme.Dot(10, logging ? Theme.Success : Theme.TextMuted);
+            StatusLogging.Text = logging ? "Logging every " + (interval >= 0 && interval < intervals.Length ? intervals[interval] : intervals[0]) : "Not logging";
+        }
+
         /// <summary>Adds the specified item to the connection log, shows it if its type is visible, and saves the log.</summary>
         private void AddLogItem(ListViewItem item)
         {
@@ -533,11 +559,11 @@ namespace SpeedTest
             switch (item.ImageIndex)
             {
                 case 0: // Successful
-                    return ToolBarShowSuccessful.Pushed;
+                    return ToolBarShowSuccessful.Checked;
                 case 1: // Status Changed
-                    return ToolBarShowStatusChanges.Pushed;
+                    return ToolBarShowStatusChanges.Checked;
                 default: // Error
-                    return ToolBarShowErrors.Pushed;
+                    return ToolBarShowErrors.Checked;
             }
         }
 
