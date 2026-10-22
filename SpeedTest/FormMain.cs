@@ -320,6 +320,25 @@ namespace SpeedTest
             Application.Exit();
         }
 
+        /// <summary>Occurs when the toolbar lays out its buttons: widens the spacer so Settings, Help and About sit at the right.</summary>
+        private void ToolStripMain_Layout(object sender, LayoutEventArgs e)
+        {
+            // Right-aligned toolbar items aren't exposed to screen readers or UI Automation in .NET Framework,
+            // so every button is left-aligned and this invisible spacer fills the gap instead
+            int used = 0;
+
+            foreach (ToolStripItem item in ToolStripMain.Items)
+            {
+                if (item != ToolBarSpacer && item.Available) used += item.Width + item.Margin.Horizontal;
+            }
+
+            // A few pixels of slack: if the spacer takes every last pixel, the toolbar moves the last button out of view
+            int width = Math.Max(0, ToolStripMain.DisplayRectangle.Width - used - ToolBarSpacer.Margin.Horizontal - 4);
+
+            // Changing the width lays the toolbar out again, so only change it when it differs
+            if (ToolBarSpacer.Width != width) ToolBarSpacer.Width = width;
+        }
+
         /// <summary>Occurs when the NotifyIcon is double-clicked.</summary>
         private void IconMain_MouseDoubleClick(object sender, MouseEventArgs e)
         {

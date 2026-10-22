@@ -66,6 +66,7 @@
             this.ToolBarShowSuccessful = new System.Windows.Forms.ToolStripButton();
             this.ToolBarShowStatusChanges = new System.Windows.Forms.ToolStripButton();
             this.ToolBarShowErrors = new System.Windows.Forms.ToolStripButton();
+            this.ToolBarSpacer = new System.Windows.Forms.ToolStripLabel();
             this.ToolBarAbout = new System.Windows.Forms.ToolStripButton();
             this.ToolBarHelp = new System.Windows.Forms.ToolStripButton();
             this.ToolBarSettings = new System.Windows.Forms.ToolStripButton();
@@ -303,6 +304,7 @@
             // ToolStripMain
             //
             this.ToolStripMain.AutoSize = false;
+            this.ToolStripMain.CanOverflow = false;
             this.ToolStripMain.Font = new System.Drawing.Font("Segoe UI", 9F);
             this.ToolStripMain.GripStyle = System.Windows.Forms.ToolStripGripStyle.Hidden;
             this.ToolStripMain.ImageScalingSize = new System.Drawing.Size(20, 20);
@@ -314,14 +316,16 @@
             this.ToolBarShowSuccessful,
             this.ToolBarShowStatusChanges,
             this.ToolBarShowErrors,
-            this.ToolBarAbout,
+            this.ToolBarSpacer,
+            this.ToolBarSettings,
             this.ToolBarHelp,
-            this.ToolBarSettings});
+            this.ToolBarAbout});
             this.ToolStripMain.Location = new System.Drawing.Point(0, 0);
             this.ToolStripMain.Name = "ToolStripMain";
             this.ToolStripMain.Padding = new System.Windows.Forms.Padding(8, 2, 8, 2);
             this.ToolStripMain.Size = new System.Drawing.Size(922, 40);
             this.ToolStripMain.TabIndex = 2;
+            this.ToolStripMain.Layout += new System.Windows.Forms.LayoutEventHandler(this.ToolStripMain_Layout);
             //
             // ToolBarStartLogging
             //
@@ -387,9 +391,15 @@
             this.ToolBarShowErrors.ToolTipText = "Show errors in the list";
             this.ToolBarShowErrors.Click += new System.EventHandler(this.MenuShowErrors_Click);
             //
+            // ToolBarSpacer
+            //
+            this.ToolBarSpacer.AccessibleRole = System.Windows.Forms.AccessibleRole.WhiteSpace;
+            this.ToolBarSpacer.AutoSize = false;
+            this.ToolBarSpacer.Name = "ToolBarSpacer";
+            this.ToolBarSpacer.Size = new System.Drawing.Size(100, 36);
+            //
             // ToolBarAbout
             //
-            this.ToolBarAbout.Alignment = System.Windows.Forms.ToolStripItemAlignment.Right;
             this.ToolBarAbout.DisplayStyle = System.Windows.Forms.ToolStripItemDisplayStyle.Image;
             this.ToolBarAbout.Margin = new System.Windows.Forms.Padding(1, 0, 1, 0);
             this.ToolBarAbout.Name = "ToolBarAbout";
@@ -400,7 +410,6 @@
             //
             // ToolBarHelp
             //
-            this.ToolBarHelp.Alignment = System.Windows.Forms.ToolStripItemAlignment.Right;
             this.ToolBarHelp.DisplayStyle = System.Windows.Forms.ToolStripItemDisplayStyle.Image;
             this.ToolBarHelp.Margin = new System.Windows.Forms.Padding(1, 0, 1, 0);
             this.ToolBarHelp.Name = "ToolBarHelp";
@@ -411,7 +420,6 @@
             //
             // ToolBarSettings
             //
-            this.ToolBarSettings.Alignment = System.Windows.Forms.ToolStripItemAlignment.Right;
             this.ToolBarSettings.Margin = new System.Windows.Forms.Padding(1, 0, 1, 0);
             this.ToolBarSettings.Name = "ToolBarSettings";
             this.ToolBarSettings.Padding = new System.Windows.Forms.Padding(6, 0, 6, 0);
@@ -499,6 +507,7 @@
         private System.Windows.Forms.ToolStripButton ToolBarShowSuccessful;
         private System.Windows.Forms.ToolStripButton ToolBarShowStatusChanges;
         private System.Windows.Forms.ToolStripButton ToolBarShowErrors;
+        private System.Windows.Forms.ToolStripLabel ToolBarSpacer;
         private System.Windows.Forms.ToolStripButton ToolBarSettings;
         private System.Windows.Forms.ToolStripButton ToolBarHelp;
         private System.Windows.Forms.ToolStripButton ToolBarAbout;
