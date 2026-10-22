@@ -40,6 +40,13 @@ namespace SpeedTest
         private Uri FileUri;
 
         #endregion
+        #region Properties
+        /// <summary>Gets the file name of the last download URL, or "n/a" if no download has started yet.</summary>
+        private string CurrentFileName
+        {
+            get { return FileUri != null && FileUri.Segments.Length > 0 ? FileUri.Segments[FileUri.Segments.Length - 1] : "n/a"; }
+        }
+        #endregion
         #region Constructor
         /// <summary>Initializes a new instance of the FormMain class.</summary>
         public FormMain(bool startLogging)
@@ -449,7 +456,7 @@ namespace SpeedTest
                 item.SubItems.Add(p_CurrentIP);                                            //IP
                 item.SubItems.Add(message);                                                //Message
                 item.SubItems.Add("OK");                                              //Status
-                item.SubItems.Add(FileUri.Segments[2]);                                    //Filename
+                item.SubItems.Add(CurrentFileName);                                          //Filename
                 item.SubItems.Add(webClient.CurrentSpeed.ToString());                 //Speed
                 item.ImageIndex = imageIndex;
                 item.Tag = DateTime.Now;
@@ -633,7 +640,7 @@ namespace SpeedTest
                 item.SubItems.Add(p_CurrentIP);                                             //IP
                 item.SubItems.Add(message);                                                 //Message
                 item.SubItems.Add("Offline");                                          //Status
-                item.SubItems.Add(FileUri.Segments[2]);                                     //Filename
+                item.SubItems.Add(CurrentFileName);                                           //Filename
                 item.SubItems.Add("0");                                                //Speed
                 item.ImageIndex = imageIndex;
                 item.Tag = DateTime.Now;
@@ -727,7 +734,7 @@ namespace SpeedTest
                 item.SubItems.Add(p_CurrentIP);                                             //IP
                 item.SubItems.Add(message);                                                 //Message
                 item.SubItems.Add("Offline");                                          //Status
-                item.SubItems.Add(FileUri.Segments[2]);                                     //Filename
+                item.SubItems.Add(CurrentFileName);                                           //Filename
                 item.SubItems.Add("0");                                                //Speed
                 item.ImageIndex = imageIndex;
                 item.Tag = DateTime.Now;
