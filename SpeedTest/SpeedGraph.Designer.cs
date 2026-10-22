@@ -51,7 +51,7 @@
             // 
             // SpeedGraph
             // 
-            this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.None;
+            this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Inherit;
             this.Controls.Add(this.ComboTimeScale);
             this.DoubleBuffered = true;
             this.Name = "SpeedGraph";

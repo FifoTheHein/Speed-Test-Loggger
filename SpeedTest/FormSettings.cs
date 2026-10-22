@@ -27,9 +27,9 @@ namespace SpeedTest
             Theme.StyleButton(ButtonCancel, false);
             Theme.StyleButton(ButtonOpenLog, false);
             Theme.StyleButton(ButtonLogFile, false);
-            ButtonOpenLog.Image = Theme.Icon(Theme.GlyphDocument, 16, Theme.Text);
+            ButtonOpenLog.Image = Theme.Icon(Theme.GlyphDocument, Theme.Scale(this, 16), Theme.Text);
             ButtonOpenLog.TextImageRelation = TextImageRelation.ImageBeforeText;
-            ButtonLogFile.Image = Theme.Icon(Theme.GlyphFolder, 16, Theme.Text);
+            ButtonLogFile.Image = Theme.Icon(Theme.GlyphFolder, Theme.Scale(this, 16), Theme.Text);
             if (ButtonLogFile.Image != null) ButtonLogFile.Text = string.Empty;
 
             // Show each date format with the current time, instead of a pattern
