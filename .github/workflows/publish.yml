@@ -68,7 +68,7 @@ jobs:
           Copy-Item "$pub\setup.exe", "$pub\SpeedTestLoggger.application", 'deploy\index.html' _site
           Copy-Item "$pub\Application Files\$folder" '_site\Application Files' -Recurse
 
-      - uses: actions/upload-pages-artifact@v3
+      - uses: actions/upload-pages-artifact@v5
         with:
           path: _site
 
