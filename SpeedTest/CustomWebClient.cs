@@ -3,42 +3,33 @@
 using System;
 using System.Diagnostics;
 using System.Net;
+using System.Net.Cache;
 #endregion
 namespace SpeedTest
 {
-    /// <summary>Custom WebClient object that supports timing the estimated time of arrival (ETA) of the file download.</summary>
+    /// <summary>Custom WebClient object that measures the download speed of a timed download.</summary>
     public class CustomWebClient : WebClient
     {
         #region Members
         // Private variables
         private long p_AllBytesDownloaded;
         private long p_CurrentSpeed;
-        private long p_LastBytesDownloaded;
+        private long p_FirstChunkBytes;
+        private TimeSpan p_FirstChunkTime;
+        private bool p_Timing;
         private Stopwatch p_Stopwatch;
         #endregion
         #region Properties
-        /// <summary>Gets the total number of bytes downloaded using an asynchronous request.</summary>
+        /// <summary>Gets the total number of bytes received by the timed download.</summary>
         public long AllBytesDownloaded
         {
             get { return p_AllBytesDownloaded; }
         }
 
-        /// <summary>Gets the current speed of data downloaded using an asynchronous request.</summary>
+        /// <summary>Gets the speed of the timed download, in bytes per second.</summary>
         public long CurrentSpeed
         {
             get { return p_CurrentSpeed; }
-        }
-
-        /// <summary>Gets the most recent number of bytes downloaded using an asynchronous request.</summary>
-        public long LastBytesDownloaded
-        {
-            get { return p_LastBytesDownloaded; }
-        }
-
-        /// <summary>Gets the Stopwatch object used to calculate the estimated time of arrival (ETA).</summary>
-        public Stopwatch Stopwatch
-        {
-            get { return p_Stopwatch; }
         }
         #endregion
         #region Constructor
@@ -48,16 +39,37 @@ namespace SpeedTest
             // Initialize private variables
             p_AllBytesDownloaded = 0;
             p_CurrentSpeed = 0;
-            p_LastBytesDownloaded = 0;
             p_Stopwatch = new Stopwatch();
+
+            // Always fetch from the server, so a cached copy can't report local disk speed
+            CachePolicy = new RequestCachePolicy(RequestCacheLevel.NoCacheNoStore);
+        }
+        #endregion
+        #region Public Methods
+        /// <summary>Starts downloading the specified file and times it. Only this download counts towards CurrentSpeed.</summary>
+        public void StartTimedDownload(Uri address, object userToken)
+        {
+            p_AllBytesDownloaded = 0;
+            p_CurrentSpeed = 0;
+            p_FirstChunkBytes = -1;
+            p_Timing = true;
+            p_Stopwatch.Restart();
+
+            DownloadDataAsync(address, userToken);
         }
         #endregion
         #region Overrides
         /// <summary>Occurs when an asynchronous data download operation completes.</summary>
         protected override void OnDownloadDataCompleted(DownloadDataCompletedEventArgs e)
         {
-            // Reset the Stopwatch
-            p_Stopwatch.Reset();
+            if (p_Timing)
+            {
+                // Count every byte of the file, including any that arrived after the last progress event
+                if (e.Error == null && !e.Cancelled && e.Result != null) UpdateSpeed(e.Result.LongLength);
+
+                p_Timing = false;
+                p_Stopwatch.Stop();
+            }
 
             // Continue processing the event as usual
             base.OnDownloadDataCompleted(e);
@@ -66,34 +78,38 @@ namespace SpeedTest
         /// <summary>Occurs when an asynchronous download operation successfully transfers some or all of the data.</summary>
         protected override void OnDownloadProgressChanged(DownloadProgressChangedEventArgs e)
         {
-            try
-            {
-                if (p_LastBytesDownloaded.Equals(0)) p_LastBytesDownloaded = e.BytesReceived;
-                else
-                {
-                    long bytesChange = e.BytesReceived - p_LastBytesDownloaded;
-
-                    // Update private variables
-                    p_AllBytesDownloaded += bytesChange;
-                    p_LastBytesDownloaded = e.BytesReceived;
-                    // The Stopwatch only runs once the speed test starts, so skip progress from the IP lookup
-                    if (p_Stopwatch.Elapsed.TotalSeconds > 0) p_CurrentSpeed = Convert.ToInt64(p_AllBytesDownloaded / p_Stopwatch.Elapsed.TotalSeconds);
-                }
-            }
-            catch { }
+            // Progress from the IP lookup isn't part of the speed test
+            if (p_Timing) UpdateSpeed(e.BytesReceived);
 
             // Continue processing the event as usual
             base.OnDownloadProgressChanged(e);
         }
-
-        /// <summary>Occurs when an asynchronous string download operation completes.</summary>
-        protected override void OnDownloadStringCompleted(DownloadStringCompletedEventArgs e)
+        #endregion
+        #region Private Methods
+        /// <summary>Updates the measured speed from the total bytes the timed download has received so far.</summary>
+        private void UpdateSpeed(long bytesReceived)
         {
-            // Start the Stopwatch
-            p_Stopwatch.Start();
+            TimeSpan elapsed = p_Stopwatch.Elapsed;
+            p_AllBytesDownloaded = bytesReceived;
 
-            // Continue processing the event as usual
-            base.OnDownloadStringCompleted(e);
+            // The first chunk arrives only after connecting and waiting for the server, so time from it when possible
+            if (p_FirstChunkBytes < 0)
+            {
+                p_FirstChunkBytes = bytesReceived;
+                p_FirstChunkTime = elapsed;
+            }
+
+            long bytes = bytesReceived - p_FirstChunkBytes;
+            double seconds = (elapsed - p_FirstChunkTime).TotalSeconds;
+
+            // A small file can arrive in one chunk; then the whole request time is all there is to go on
+            if (bytes <= 0 || seconds <= 0)
+            {
+                bytes = bytesReceived;
+                seconds = elapsed.TotalSeconds;
+            }
+
+            if (seconds > 0) p_CurrentSpeed = (long)(bytes / seconds);
         }
         #endregion
     }

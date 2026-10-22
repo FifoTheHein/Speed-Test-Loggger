@@ -10,9 +10,9 @@ WinForms app on .NET Framework 4.8 (C#) that runs download speed tests on a sche
 
 | File | What's in it |
 |---|---|
-| `SpeedTest/Global.cs` | Entry point, settings defaults, CSV log load and save, `IsOnline`, which pings google.com |
+| `SpeedTest/Global.cs` | Entry point, settings defaults, CSV log load and save |
 | `SpeedTest/FormMain.cs` | Logging loop: IP lookup, then a test download, then a log row |
-| `SpeedTest/CustomWebClient.cs` | `WebClient` that measures download speed |
+| `SpeedTest/CustomWebClient.cs` | `WebClient` that times the test download (`StartTimedDownload`) |
 | `SpeedTest/SpeedGraph.cs` | Graph control |
 | `SpeedTest/FormSettings.cs` | Settings dialog |
 | `.github/workflows/publish.yml` | Release workflow: builds, signs, deploys to Pages |
@@ -34,6 +34,21 @@ WinForms app on .NET Framework 4.8 (C#) that runs download speed tests on a sche
 - Saves go to a `.tmp` file and then `File.Replace`, never straight over the log. If the log couldn't be read at startup, the first save reads it again first. If rows were skipped, the first save keeps a dated `.bak` copy.
 - In `FormMain`, add rows with `AddLogItem`. It shows the row, saves the log, and puts save errors in the status bar. Don't show dialogs from the logging loop.
 - Older rows, in the original a9t9 format, have the two swapped: Message holds the result ("OK", "Error", "Offline") and Status holds the change. Anything that reads the change, like the graph's offline shading, must handle both. Use `SpeedGraph.GetConnectionChange` and `IsLoggerEvent`.
+
+## Speed tests
+
+- **A test runs in two steps:** `GetRemoteIP` looks up the public IP over HTTP, then always downloads the test file.
+  - **Outcomes:** if the download works, the row is OK. If both steps fail, it's Offline. If only the download fails, it's Error, with the reason in Message ("HTTP 404", "Timed out", ...).
+  - **No ping:** there is deliberately no ping. It froze the window and failed on networks that block ICMP.
+- **One test at a time:** `p_ActiveClient` is the running test. `GetRemoteIP` skips a new test while one is active. Every completion path must call `FinishTest`, which clears it and disposes the client.
+- **Timeouts:** 15 s for the IP lookup and 60 s for the download. `p_TestDeadline` is checked by the logger's once-a-second `p_TimerLog_Tick`, which calls `CancelAsync`.
+  - Don't use a separate WinForms `Timer` for this. Stopping and restarting one quickly left it disabled, so hung downloads never timed out.
+- **Speed measurement:** `CustomWebClient.StartTimedDownload` resets the counters, and only that download is timed.
+  - **Timing:** speed is measured from the first chunk, which leaves out connecting and waiting for the server. If the file arrives in one chunk, the whole request time is used.
+  - **No cache:** the cache is bypassed, so a cached file can't report disk speed.
+- **Testing:** the networking tests used a local Python HTTP server, with routes for a fake IP, a captive portal page, a hang, a 404 and a throttled 1 MB file. They drove `FormMain` by reflection, and the harness called `p_TimerLog_Tick` once a second.
+  - Build to a separate `OutDir` if Visual Studio is debugging, since that locks `bin\Debug`.
+  - Closing a `FormMain` runs `OnFormClosing`, which saves settings and calls `UpdateAutoStart`. Point `LogFile` at a scratch file first.
 
 ## Settings and startup
 

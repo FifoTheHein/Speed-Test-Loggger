@@ -1,13 +1,13 @@
 ﻿#region Using
 // Imported namespaces
 using System;
+using System.ComponentModel;
 using System.Diagnostics;
 using System.Drawing;
 using System.Globalization;
 using System.IO;
 using System.Text;
 using System.Net;
-using System.Net.NetworkInformation;
 using System.Text.RegularExpressions;
 using System.Windows.Forms;
 using SpeedTest.Properties;
@@ -25,7 +25,6 @@ namespace SpeedTest
             None,
             Online,
             Offline,
-            InvalidURL,
         }
         #endregion
         #region Delegates
@@ -40,6 +39,12 @@ namespace SpeedTest
         private DateTime p_StartupTime;
         private System.Threading.Timer p_TimerLog;
         private Uri FileUri;
+
+        // The test in progress, if any, and when the logger's timer should cancel it for taking too long
+        private CustomWebClient p_ActiveClient;
+        private DateTime? p_TestDeadline;
+        private const int IpLookupTimeout = 15000;
+        private const int DownloadTimeout = 60000;
 
         #endregion
         #region Properties
@@ -63,6 +68,8 @@ namespace SpeedTest
             p_StartLogging = startLogging;
             p_StartupTime = DateTime.Now;
             p_TimerLog = null;
+            p_ActiveClient = null;
+            p_TestDeadline = null;
 
             // Initialize FormMain properties
             this.ClientSize = new Size(660, 480);
@@ -93,6 +100,9 @@ namespace SpeedTest
 
                 // Reset elapsed seconds
                 p_ElapsedSeconds = 0;
+
+                // Cancel a test in progress
+                p_ActiveClient?.CancelAsync();
 
                 // Create a new ListViewItem object
                 ListViewItem item = new ListViewItem(Global.ConvertTime(DateTime.Now)); //Time
@@ -218,6 +228,9 @@ namespace SpeedTest
             p_TimerLog = null;
 
             p_ElapsedSeconds = 0;
+
+            // Cancel a test in progress; its completion handler then disposes it without logging
+            p_ActiveClient?.CancelAsync();
 
             // Update the GUI
             ToolBarStartLogging.Enabled = true;
@@ -358,6 +371,16 @@ namespace SpeedTest
             if (InvokeRequired) Invoke(new TimerTickCallback(p_TimerLog_Tick), new object[] { stateObject });
             else
             {
+                // The logger may have been stopped while this tick waited for the UI thread
+                if (p_TimerLog == null) return;
+
+                // Cancel a test that has taken too long; it then completes as failed
+                if (p_ActiveClient != null && p_TestDeadline.HasValue && DateTime.Now >= p_TestDeadline.Value)
+                {
+                    p_TestDeadline = null;
+                    p_ActiveClient.CancelAsync();
+                }
+
                 // Increment elapsed seconds
                 p_ElapsedSeconds++;
 
@@ -387,7 +410,9 @@ namespace SpeedTest
                     case 6: // 1 Hour
                         if (ts.TotalMinutes >= 60) GetRemoteIP();
                         break;
-                        
+                    default: // An unknown setting would otherwise never test
+                        if (ts.TotalSeconds >= 15) GetRemoteIP();
+                        break;
                 }
             }
         }
@@ -399,101 +424,45 @@ namespace SpeedTest
             GraphMain.Invalidate();
         }
 
+        /// <summary>Occurs when the test download completes, fails or is cancelled.</summary>
         private void webClient_DownloadDataCompleted(object sender, DownloadDataCompletedEventArgs e)
         {
             // Retrieve the CustomWebClient object
             CustomWebClient webClient = sender as CustomWebClient;
             if (webClient == null) return;
 
-            if (p_TimerLog == null) return;
+            // The logger was stopped while the test ran
+            if (webClient != p_ActiveClient || p_TimerLog == null)
+            {
+                FinishTest(webClient);
+                return;
+            }
 
-            // Retrieve the IP address
+            // The IP address from the lookup, or null if the lookup failed
             string ip = (string)e.UserState;
 
-            // Local variables
-            string message = "-";
-            StatusCode newStatus = StatusCode.Online;
-            int imageIndex = 0;
-            ListViewItem item = null;
-
-            if (e.Error == null) // Data downloaded successfully
+            if (e.Error == null && !e.Cancelled) // Data downloaded successfully
             {
                 // Update the StatusBar
                 StatusMain.Text = "Connection logged, size: " + Global.ConvertBytes(webClient.AllBytesDownloaded) + " speed: " + Global.ConvertBytes(webClient.CurrentSpeed) + "/s";
 
-                if (!p_CurrentIP.Equals(ip))
-                {
-                    message = "IP Changed";
-                    imageIndex = 1;
-                    p_CurrentIP = ip;
-                }
-
-                if (!p_CurrentStatus.Equals(newStatus) && !p_CurrentStatus.Equals(StatusCode.Online))
-                {
-                    message = "Online";
-                    imageIndex = 0;
-                    p_CurrentStatus = newStatus;
-                }
-
-                if (!p_CurrentStatus.Equals(newStatus) && !p_CurrentStatus.Equals(StatusCode.Offline))
-                {
-                    message = "Offline";
-                    imageIndex = 2;
-                    p_CurrentStatus = newStatus;
-                }
-
-                // Create a new ListViewItem object
-                item = new ListViewItem(Global.ConvertTime(DateTime.Now));            //Time
-                item.SubItems.Add(Global.ConvertBytes(webClient.CurrentSpeed) + "/s");//b/s
-                item.SubItems.Add(p_CurrentIP);                                            //IP
-                item.SubItems.Add(message);                                                //Message
-                item.SubItems.Add("OK");                                              //Status
-                item.SubItems.Add(CurrentFileName);                                          //Filename
-                item.SubItems.Add(webClient.CurrentSpeed.ToString());                 //Speed
-                item.ImageIndex = imageIndex;
-                item.Tag = DateTime.Now;
+                // If only the IP lookup failed, the IP address is unknown rather than changed
+                LogTestResult(StatusCode.Online, ip ?? p_CurrentIP, "OK", "-", webClient.CurrentSpeed);
             }
-            else // An error occured downloading the data
+            else if (ip == null) // Neither the IP lookup nor the test download worked
             {
-                // Update the StatusBar
-                StatusMain.Text = "Unable to test speed: " + Global.ConvertTime(DateTime.Now);
+                StatusMain.Text = "Unable to test speed, no connection: " + Global.ConvertTime(DateTime.Now);
+                LogTestResult(StatusCode.Offline, "-", "Offline", "-", 0);
+            }
+            else // The IP lookup worked, so the connection is up, but the test download failed
+            {
+                string error = DescribeError(e);
 
-                // Set status to Offline
-                newStatus = StatusCode.InvalidURL;
-                imageIndex = 2;
-                //ip = "-";
-
-                if (!p_CurrentIP.Equals(ip))
-                {
-                    message = "IP Changed";
-                    imageIndex = 1;
-                    p_CurrentIP = ip;
-                }
-
-                if (!p_CurrentStatus.Equals(newStatus))
-                {
-                    message = "Invalid URL";
-                    imageIndex = 2;
-                    p_CurrentStatus = newStatus;
-                }
-
-                // Create a new ListViewItem object
-                item = new ListViewItem(Global.ConvertTime(DateTime.Now));//Time
-                item.SubItems.Add(Global.ConvertBytes(0) + "/s");         //b/s
-                item.SubItems.Add(p_CurrentIP);                                //IP
-                item.SubItems.Add(message);                                    //Message
-                item.SubItems.Add("Error");                               //Status
-                item.SubItems.Add("n/a");                                 //Filename
-                item.SubItems.Add("0");                                   //Speed
-                item.ImageIndex = imageIndex;
-                item.Tag = DateTime.Now;
+                StatusMain.Text = "Unable to test speed (" + error + "): " + Global.ConvertTime(DateTime.Now);
+                LogTestResult(StatusCode.Online, ip, "Error", error, 0);
             }
 
-            // Add the ListViewItem to the log
-            if (item != null) AddLogItem(item);
-
-            // Dispose the CustomWebClient object
-            webClient.Dispose();
+            FinishTest(webClient);
         }
 
         private void webClient_DownloadProgressChanged(object sender, DownloadProgressChangedEventArgs e)
@@ -514,110 +483,31 @@ namespace SpeedTest
             CustomWebClient webClient = sender as CustomWebClient;
             if (webClient == null) return;
 
-            // Local variables
-            string ip = "-";
-            string message = "-";
-            StatusCode newStatus = StatusCode.Online;
-            int imageIndex = 0;
-            // Regex to match IP address
-            Regex regex = new Regex(@"(?:[0-9]{1,3}\.){3}[0-9]{1,3}");
-
-            if (e.Error == null && regex.IsMatch(e.Result)) // String downloaded successfully and contains IP address
+            // The logger was stopped while the lookup ran
+            if (webClient != p_ActiveClient || p_TimerLog == null)
             {
-                // Get the first instance of an IP in the result using regex
-                Match match = regex.Match(e.Result);
-
-                // Remove line breaks from the IP address
-                ip = match.Value;
-
-                StatusMain.Text = "Testing speed at: " + Global.ConvertTime(DateTime.Now);
-
-                // Begin downloading the data, passing the IP to the DownloadDataCompleted event
-                if (Settings.Default.AutoDownload)
-                {
-                    string url = string.Empty;
-                    long maximumSpeed = 0;
-
-                    foreach (ListViewItem item in Global.ConnectionLog)
-                    {
-                        long speed = Global.ToInt64(item.SubItems[6].Text);
-
-                        if (speed > maximumSpeed) maximumSpeed = speed;
-                    }
-
-                    // Auto-select URL based on maximum download speed
-                    if (maximumSpeed < 1024000)
-                    {
-                        // Download 100k file
-                        url = "https://app.tfn.co.za/test/test100k.zip";
-                    }
-                    //else if (maximumSpeed < 1024000 * 5)
-                    //{
-                    //    // Download 1 MB file
-                    //    url = "https://app.tfn.co.za/test/test1mb.zip";
-                    //}
-                    else
-                    {
-                        // Download 1 MB file
-                        url = "https://app.tfn.co.za/test/test1mb.zip";
-                    }
-
-                    FileUri = new Uri(url);
-
-                    webClient.DownloadDataAsync(FileUri, ip);
-                }
-                else if (Global.TryGetWebUri(Settings.Default.DownloadURL, out Uri downloadUri))
-                {
-                    FileUri = downloadUri;
-                    webClient.DownloadDataAsync(FileUri, ip);
-                }
-                else
-                {
-                    // Settings rejects invalid URLs, but the setting could predate that check
-                    StatusMain.Text = "Unable to test speed: the custom download URL in Configuration Settings isn't a valid web address";
-                    webClient.Dispose();
-                }
+                FinishTest(webClient);
+                return;
             }
-            else // An error occured downloading the string
+
+            // The IP address, or null if the lookup failed. A failed lookup alone doesn't mean offline:
+            // the test download still runs, so an outage of the lookup service isn't logged as an outage.
+            string ip = e.Error == null && !e.Cancelled ? FindIPAddress(e.Result) : null;
+
+            if (!TryGetDownloadUri(out Uri downloadUri))
             {
-                StatusMain.Text = "Unable to test speed: " + Global.ConvertTime(DateTime.Now);
-
-                // Set status to Offline
-                newStatus = StatusCode.Offline;
-                imageIndex = 2;
-                ip = "-";
-
-                if (!p_CurrentIP.Equals(ip))
-                {
-                    message = "IP Changed";
-                    imageIndex = 1;
-                    p_CurrentIP = ip;
-                }
-
-                if (!p_CurrentStatus.Equals(newStatus))
-                {
-                    message = "Offline";
-                    imageIndex = 2;
-                    p_CurrentStatus = newStatus;
-                }
-
-                // Create a new ListViewItem object
-                ListViewItem item = new ListViewItem(Global.ConvertTime(DateTime.Now));//Time
-                item.SubItems.Add(Global.ConvertBytes(0) + "/s");                      //b/s
-                item.SubItems.Add(p_CurrentIP);                                             //IP
-                item.SubItems.Add(message);                                                 //Message
-                item.SubItems.Add("Offline");                                          //Status
-                item.SubItems.Add(CurrentFileName);                                           //Filename
-                item.SubItems.Add("0");                                                //Speed
-                item.ImageIndex = imageIndex;
-                item.Tag = DateTime.Now;
-
-                // Add the ListViewItem to the log
-                AddLogItem(item);
-
-                // Dispose the CustomWebClient object
-                webClient.Dispose();
+                // Settings rejects invalid URLs, but the setting could predate that check
+                StatusMain.Text = "Unable to test speed: the custom download URL in Configuration Settings isn't a valid web address";
+                FinishTest(webClient);
+                return;
             }
+
+            FileUri = downloadUri;
+            StatusMain.Text = "Testing speed at: " + Global.ConvertTime(DateTime.Now);
+
+            // Begin downloading the data, passing the IP to the DownloadDataCompleted event
+            StartTestTimeout(DownloadTimeout);
+            webClient.StartTimedDownload(FileUri, ip);
         }
         #endregion
         #region Private Methods
@@ -651,79 +541,145 @@ namespace SpeedTest
             if (!Global.SaveConnectionLog(Settings.Default.LogFile))
                 StatusMain.Text = "Unable to save the log: " + Global.LastSaveError;
         }
+
+        /// <summary>Logs the result of a test, marking a change of IP address or of online/offline status in the Message column.</summary>
+        private void LogTestResult(StatusCode newStatus, string ip, string status, string message, long speed)
+        {
+            int imageIndex = status.Equals("OK") ? 0 : 2;
+
+            if (!p_CurrentIP.Equals(ip))
+            {
+                message = "IP Changed";
+                imageIndex = 1;
+                p_CurrentIP = ip;
+            }
+
+            if (!p_CurrentStatus.Equals(newStatus))
+            {
+                message = newStatus == StatusCode.Online ? "Online" : "Offline";
+                imageIndex = newStatus == StatusCode.Online ? 1 : 2;
+                p_CurrentStatus = newStatus;
+            }
+
+            // Create a new ListViewItem object
+            ListViewItem item = new ListViewItem(Global.ConvertTime(DateTime.Now));//Time
+            item.SubItems.Add(Global.ConvertBytes(speed) + "/s");                  //b/s
+            item.SubItems.Add(p_CurrentIP);                                        //IP
+            item.SubItems.Add(message);                                            //Message
+            item.SubItems.Add(status);                                             //Status
+            item.SubItems.Add(CurrentFileName);                                    //Filename
+            item.SubItems.Add(speed.ToString(CultureInfo.InvariantCulture));       //Speed
+            item.ImageIndex = imageIndex;
+            item.Tag = DateTime.Now;
+
+            // Add the ListViewItem to the log
+            AddLogItem(item);
+        }
+
+        /// <summary>Ends the specified test: clears its deadline, lets the next test start, and disposes its client.</summary>
+        private void FinishTest(CustomWebClient webClient)
+        {
+            if (webClient == p_ActiveClient)
+            {
+                p_TestDeadline = null;
+                p_ActiveClient = null;
+            }
+
+            webClient.Dispose();
+        }
+
+        /// <summary>Sets the deadline for the current step of the test. The logger's once-a-second tick cancels the test after it.</summary>
+        private void StartTestTimeout(int milliseconds)
+        {
+            p_TestDeadline = DateTime.Now.AddMilliseconds(milliseconds);
+        }
+
+        /// <summary>Gets the first valid IPv4 address in the specified text, or null if there isn't one (e.g. a captive portal page).</summary>
+        private static string FindIPAddress(string text)
+        {
+            foreach (Match match in Regex.Matches(text ?? string.Empty, @"\b(?:[0-9]{1,3}\.){3}[0-9]{1,3}\b"))
+            {
+                // The pattern also matches values like 999.1.1.1
+                if (IPAddress.TryParse(match.Value, out IPAddress address) && address.AddressFamily == System.Net.Sockets.AddressFamily.InterNetwork)
+                    return match.Value;
+            }
+
+            return null;
+        }
+
+        /// <summary>Gets the URL of the file to time: the custom URL, or a file sized to the fastest speed logged so far.</summary>
+        private static bool TryGetDownloadUri(out Uri uri)
+        {
+            if (!Settings.Default.AutoDownload) return Global.TryGetWebUri(Settings.Default.DownloadURL, out uri);
+
+            long maximumSpeed = 0;
+
+            foreach (ListViewItem item in Global.ConnectionLog)
+            {
+                long speed = Global.ToInt64(item.SubItems[6].Text);
+
+                if (speed > maximumSpeed) maximumSpeed = speed;
+            }
+
+            // Below about 1 MB/s the 100 KB file is enough; above it, the 1 MB file times more accurately
+            uri = new Uri(maximumSpeed < 1024000 ? "https://app.tfn.co.za/test/test100k.zip" : "https://app.tfn.co.za/test/test1mb.zip");
+            return true;
+        }
+
+        /// <summary>Gets a short description of why a test download failed, for the Message column.</summary>
+        private static string DescribeError(AsyncCompletedEventArgs e)
+        {
+            if (e.Cancelled) return "Timed out";
+
+            WebException error = e.Error as WebException;
+
+            if (error?.Response is HttpWebResponse response) return "HTTP " + (int)response.StatusCode;
+
+            switch (error?.Status)
+            {
+                case WebExceptionStatus.NameResolutionFailure:
+                    return "Server not found";
+                case WebExceptionStatus.ConnectFailure:
+                    return "Connection failed";
+                case WebExceptionStatus.Timeout:
+                    return "Timed out";
+                default:
+                    return "Download failed";
+            }
+        }
         #endregion
         #region Public Methods
-        /// <summary>Retrieves the remote IPv4 address for this system from icanhazip.com.</summary>
+        /// <summary>Starts a test: looks up the public IPv4 address, then times the test download.</summary>
         public void GetRemoteIP()
         {
             // Reset elapsed seconds
             p_ElapsedSeconds = 0;
 
-            if (Global.IsOnline)
+            // Overlapping tests would share the connection, and each would measure about half the speed
+            if (p_ActiveClient != null)
             {
-                string api = string.Empty;
-                if (Settings.Default.AutoIPDetect)
-                {
-                    api = "http://icanhazip.com";
-                }
-                else
-                {
-                    api = Settings.Default.IPDetectURL;
-                }
-
-                // Settings rejects invalid URLs, but the setting could predate that check
-                if (!Global.TryGetWebUri(api, out Uri apiUri))
-                {
-                    StatusMain.Text = "Unable to test speed: the custom IP lookup URL in Configuration Settings isn't a valid web address";
-                    return;
-                }
-
-                // Create a new WebClient object and download the string
-                CustomWebClient webClient = new CustomWebClient();
-                webClient.DownloadDataCompleted += webClient_DownloadDataCompleted;
-                webClient.DownloadProgressChanged += webClient_DownloadProgressChanged;
-                webClient.DownloadStringCompleted += webClient_DownloadStringCompleted;
-                webClient.DownloadStringAsync(apiUri);
+                StatusMain.Text = "Skipped a test at " + Global.ConvertTime(DateTime.Now) + ": the previous test is still running";
+                return;
             }
-            else
+
+            string api = Settings.Default.AutoIPDetect ? "http://icanhazip.com" : Settings.Default.IPDetectURL;
+
+            // Settings rejects invalid URLs, but the setting could predate that check
+            if (!Global.TryGetWebUri(api, out Uri apiUri))
             {
-                // Local variables
-                StatusCode newStatus = StatusCode.Offline;
-                int imageIndex = 2;
-                string ip = "-";
-                string message = "-";
-
-                // Set status to Offline
-                StatusMain.Text = "Unable to test speed: " + Global.ConvertTime(DateTime.Now);
-
-                if (!p_CurrentIP.Equals(ip))
-                {
-                    message = "IP Changed";
-                    imageIndex = 1;
-                    p_CurrentIP = ip;
-                }
-
-                if (!p_CurrentStatus.Equals(newStatus))
-                {
-                    message = "Offline";
-                    imageIndex = 2;
-                    p_CurrentStatus = newStatus;
-                }
-
-                // Create a new ListViewItem object
-                ListViewItem item = new ListViewItem(Global.ConvertTime(DateTime.Now));//Time
-                item.SubItems.Add(Global.ConvertBytes(0) + "/s");                      //b/s
-                item.SubItems.Add(p_CurrentIP);                                             //IP
-                item.SubItems.Add(message);                                                 //Message
-                item.SubItems.Add("Offline");                                          //Status
-                item.SubItems.Add(CurrentFileName);                                           //Filename
-                item.SubItems.Add("0");                                                //Speed
-                item.ImageIndex = imageIndex;
-                item.Tag = DateTime.Now;
-
-                // Add the ListViewItem to the log
-                AddLogItem(item);
+                StatusMain.Text = "Unable to test speed: the custom IP lookup URL in Configuration Settings isn't a valid web address";
+                return;
             }
+
+            // Create a new WebClient object and download the string. There's no ping first: both steps are HTTP requests,
+            // which also work on networks that block ping, and they run in the background instead of freezing the window.
+            p_ActiveClient = new CustomWebClient();
+            p_ActiveClient.DownloadDataCompleted += webClient_DownloadDataCompleted;
+            p_ActiveClient.DownloadProgressChanged += webClient_DownloadProgressChanged;
+            p_ActiveClient.DownloadStringCompleted += webClient_DownloadStringCompleted;
+
+            StartTestTimeout(IpLookupTimeout);
+            p_ActiveClient.DownloadStringAsync(apiUri);
         }
 
         /// <summary>Adds or removes the application from the Windows Startup folder.</summary>
