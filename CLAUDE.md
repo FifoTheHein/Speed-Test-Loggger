@@ -72,9 +72,10 @@ ClickOnce manifests are signed with a self-signed certificate:
 4. **The "Publish release" workflow runs.**
    - It fails if the tag doesn't match `ApplicationVersion`.
    - It builds, signs and publishes with that version as the required minimum, so clients can't skip the update.
-   - It deploys `setup.exe`, the `.application` file, that version's `Application Files` folder and `index.html` to Pages, and attaches `setup.exe` to the release.
+   - It deploys the installer, the `.application` file, that version's `Application Files` folder and `index.html` to Pages, and attaches the installer to the release.
+   - MSBuild always names the installer `setup.exe`. The workflow renames it to `Logger_Setup.exe`, so look for that name on the site and the release.
    - Watch it with `gh run watch <id> --exit-status`.
-5. **Verify the live site.** `curl` the Pages URL for `/`, `/setup.exe`, `/SpeedTestLoggger.application` and `Application%20Files/SpeedTestLoggger_1_5_0_0/...`, and check the `.application` file's version.
+5. **Verify the live site.** `curl` the Pages URL for `/`, `/Logger_Setup.exe`, `/SpeedTestLoggger.application` and `Application%20Files/SpeedTestLoggger_1_5_0_0/...`, and check the `.application` file's version.
 
 - Clients on 1.3.0 or earlier were installed from disk with updates off. They must uninstall once and install from the Pages link.
 - From 1.4.0 onwards, updates are automatic when the app starts.
