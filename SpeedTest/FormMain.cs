@@ -71,7 +71,6 @@ namespace SpeedTest
             p_TestDeadline = null;
 
             // Initialize FormMain properties
-            this.ClientSize = new Size(660, 480);
             this.Font = Theme.UI;
 
             // Initialize tray icon
@@ -141,6 +140,17 @@ namespace SpeedTest
 
             // Continue processing the event as usual
             base.OnFormClosing(e);
+        }
+
+        /// <summary>Occurs when the window moves to a monitor with different display scaling.</summary>
+        protected override void OnDpiChanged(DpiChangedEventArgs e)
+        {
+            // WinForms rescales the controls and fonts; the column widths, icons and spacing are this app's own
+            base.OnDpiChanged(e);
+
+            ScaleColumns(e.DeviceDpiNew / (float)e.DeviceDpiOld);
+            ApplyThemeSizes(e.DeviceDpiNew);
+            GraphMain.Invalidate();
         }
 
         /// <summary>Occurs whenever the Form is first displayed.</summary>
@@ -333,7 +343,7 @@ namespace SpeedTest
             }
 
             // A few pixels of slack: if the spacer takes every last pixel, the toolbar moves the last button out of view
-            int width = Math.Max(0, ToolStripMain.DisplayRectangle.Width - used - ToolBarSpacer.Margin.Horizontal - 4);
+            int width = Math.Max(0, ToolStripMain.DisplayRectangle.Width - used - ToolBarSpacer.Margin.Horizontal - Theme.Scale(this, 4));
 
             // Changing the width lays the toolbar out again, so only change it when it differs
             if (ToolBarSpacer.Width != width) ToolBarSpacer.Width = width;
@@ -502,41 +512,74 @@ namespace SpeedTest
             StatusStripMain.Renderer = renderer;
             MenuMain.Renderer = renderer;
 
-            // Toolbar icons, falling back to the original images (same order in ImageListMain)
-            SetIcon(ToolBarStartLogging, Theme.GlyphPlay, Theme.Success, 0);
-            SetIcon(ToolBarStopLogging, Theme.GlyphStop, Theme.Danger, 1);
-            SetIcon(ToolBarTest, Theme.GlyphRefresh, Theme.Accent, 2);
-            SetIcon(ToolBarShowSuccessful, Theme.GlyphCompleted, Theme.Success, 3);
-            SetIcon(ToolBarShowStatusChanges, Theme.GlyphGlobe, Theme.Accent, 4);
-            SetIcon(ToolBarShowErrors, Theme.GlyphError, Theme.Danger, 5);
-            SetIcon(ToolBarSettings, Theme.GlyphSettings, Theme.Text, 6);
-            SetIcon(ToolBarHelp, Theme.GlyphHelp, Theme.Text, 7);
-            SetIcon(ToolBarAbout, Theme.GlyphInfo, Theme.Text, 8);
+            // The list's column widths are designed at 100% display scaling, and WinForms doesn't scale them
+            ScaleColumns(DeviceDpi / 96f);
+
+            ApplyThemeSizes(DeviceDpi);
+        }
+
+        /// <summary>Sizes the icons and spacing for the specified DPI. Runs again when the window moves to a monitor with different scaling.</summary>
+        private void ApplyThemeSizes(int dpi)
+        {
+            int S(int pixels) => (int)Math.Round(pixels * dpi / 96f);
+
+            // Toolbar: icons, spacing, and icons falling back to the original images (same order in ImageListMain)
+            ToolStripMain.ImageScalingSize = new Size(S(20), S(20));
+            ToolStripMain.Padding = new Padding(S(8), S(2), S(8), S(2));
+
+            foreach (ToolStripItem item in ToolStripMain.Items)
+            {
+                int padding = item.DisplayStyle == ToolStripItemDisplayStyle.Image ? S(4) : S(6);
+                item.Padding = item is ToolStripSeparator ? Padding.Empty : new Padding(padding, 0, padding, 0);
+                item.Margin = item is ToolStripSeparator ? new Padding(S(6), 0, S(6), 0) : new Padding(S(1), 0, S(1), 0);
+            }
+
+            SetIcon(ToolBarStartLogging, Theme.GlyphPlay, Theme.Success, 0, S(20));
+            SetIcon(ToolBarStopLogging, Theme.GlyphStop, Theme.Danger, 1, S(20));
+            SetIcon(ToolBarTest, Theme.GlyphRefresh, Theme.Accent, 2, S(20));
+            SetIcon(ToolBarShowSuccessful, Theme.GlyphCompleted, Theme.Success, 3, S(20));
+            SetIcon(ToolBarShowStatusChanges, Theme.GlyphGlobe, Theme.Accent, 4, S(20));
+            SetIcon(ToolBarShowErrors, Theme.GlyphError, Theme.Danger, 5, S(20));
+            SetIcon(ToolBarSettings, Theme.GlyphSettings, Theme.Text, 6, S(20));
+            SetIcon(ToolBarHelp, Theme.GlyphHelp, Theme.Text, 7, S(20));
+            SetIcon(ToolBarAbout, Theme.GlyphInfo, Theme.Text, 8, S(20));
 
             // Tray menu icons
-            MenuStartLogging.Image = Theme.Icon(Theme.GlyphPlay, 16, Theme.Success);
-            MenuStopLogging.Image = Theme.Icon(Theme.GlyphStop, 16, Theme.Danger);
-            MenuTest.Image = Theme.Icon(Theme.GlyphRefresh, 16, Theme.Accent);
-            MenuSettings.Image = Theme.Icon(Theme.GlyphSettings, 16, Theme.Text);
-            MenuHelp.Image = Theme.Icon(Theme.GlyphHelp, 16, Theme.Text);
-            MenuAbout.Image = Theme.Icon(Theme.GlyphInfo, 16, Theme.Text);
+            MenuMain.ImageScalingSize = new Size(S(16), S(16));
+            MenuStartLogging.Image = Theme.Icon(Theme.GlyphPlay, S(16), Theme.Success);
+            MenuStopLogging.Image = Theme.Icon(Theme.GlyphStop, S(16), Theme.Danger);
+            MenuTest.Image = Theme.Icon(Theme.GlyphRefresh, S(16), Theme.Accent);
+            MenuSettings.Image = Theme.Icon(Theme.GlyphSettings, S(16), Theme.Text);
+            MenuHelp.Image = Theme.Icon(Theme.GlyphHelp, S(16), Theme.Text);
+            MenuAbout.Image = Theme.Icon(Theme.GlyphInfo, S(16), Theme.Text);
+
+            // Status bar spacing; the right side leaves room for the resize grip
+            StatusStripMain.Padding = new Padding(S(8), S(2), S(22), S(2));
 
             // List icons: successful, status change, error (the ImageIndex values the log uses)
             if (Theme.HasIcons)
             {
                 ImageListLog.Images.Clear();
                 ImageListLog.ColorDepth = ColorDepth.Depth32Bit;
-                ImageListLog.ImageSize = new Size(16, 16);
-                ImageListLog.Images.Add(Theme.Icon(Theme.GlyphCompleted, 16, Theme.Success));
-                ImageListLog.Images.Add(Theme.Icon(Theme.GlyphGlobe, 16, Theme.Accent));
-                ImageListLog.Images.Add(Theme.Icon(Theme.GlyphError, 16, Theme.Danger));
+                ImageListLog.ImageSize = new Size(S(16), S(16));
+                ImageListLog.Images.Add(Theme.Icon(Theme.GlyphCompleted, S(16), Theme.Success));
+                ImageListLog.Images.Add(Theme.Icon(Theme.GlyphGlobe, S(16), Theme.Accent));
+                ImageListLog.Images.Add(Theme.Icon(Theme.GlyphError, S(16), Theme.Danger));
             }
+
+            UpdateLoggingStatus();
+        }
+
+        /// <summary>Multiplies the list's column widths by the specified factor.</summary>
+        private void ScaleColumns(float factor)
+        {
+            foreach (ColumnHeader column in ListLog.Columns) column.Width = (int)Math.Round(column.Width * factor);
         }
 
         /// <summary>Sets a toolbar button's line icon, or the original image when Windows has no icon font.</summary>
-        private void SetIcon(ToolStripItem item, char glyph, Color color, int fallbackIndex)
+        private void SetIcon(ToolStripItem item, char glyph, Color color, int fallbackIndex, int size)
         {
-            item.Image = Theme.Icon(glyph, 20, color) ?? ImageListMain.Images[fallbackIndex];
+            item.Image = Theme.Icon(glyph, size, color) ?? ImageListMain.Images[fallbackIndex];
         }
 
         /// <summary>Shows in the status bar whether the logger is running, and how often it tests.</summary>
@@ -551,7 +594,7 @@ namespace SpeedTest
             string[] intervals = { "15 seconds", "30 seconds", "1 minute", "5 minutes", "10 minutes", "30 minutes", "1 hour" };
             int interval = Settings.Default.CheckConnection;
 
-            StatusLogging.Image = Theme.Dot(10, logging ? Theme.Success : Theme.TextMuted);
+            StatusLogging.Image = Theme.Dot(Theme.Scale(this, 10), logging ? Theme.Success : Theme.TextMuted);
             StatusLogging.Text = logging ? "Logging every " + (interval >= 0 && interval < intervals.Length ? intervals[interval] : intervals[0]) : "Not logging";
         }
 

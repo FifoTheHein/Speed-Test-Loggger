@@ -74,9 +74,9 @@ namespace SpeedTest
             g.SmoothingMode = SmoothingMode.AntiAlias;
             g.TextRenderingHint = TextRenderingHint.ClearTypeGridFit;
 
-            Rectangle plot = new Rectangle(PlotLeft, PlotTop, Width - PlotLeft - PlotRight, Height - PlotTop - PlotBottom);
+            Rectangle plot = new Rectangle(S(PlotLeft), S(PlotTop), Width - S(PlotLeft) - S(PlotRight), Height - S(PlotTop) - S(PlotBottom));
 
-            if (plot.Width > 60 && plot.Height > 40)
+            if (plot.Width > S(60) && plot.Height > S(40))
             {
                 // Scale the graph to the visible log entries before drawing the axis or any points
                 UpdateMaxSpeeds();
@@ -124,8 +124,8 @@ namespace SpeedTest
         protected override void OnResize(EventArgs e)
         {
             // Keep the Timeline combo box at the top right, beside the summary
-            ComboTimeScale.Location = new Point(Width - ComboTimeScale.Width - PlotRight, 22);
-            ComboTimeScale.Visible = Width > 420 && Height > 120;
+            ComboTimeScale.Location = new Point(Width - ComboTimeScale.Width - S(PlotRight), S(22));
+            ComboTimeScale.Visible = Width > S(420) && Height > S(120);
 
             // continue processing the event as usual
             base.OnResize(e);
@@ -155,18 +155,18 @@ namespace SpeedTest
                 if (GetConnectionChange(row).Equals("Offline")) outages++;
             }
 
-            int left = 20;
+            int left = S(20);
             left = DrawStat(g, left, last >= 0 ? "Last test, " + lastTime.ToString("HH:mm") : "Last test", last >= 0 ? (long?)last : null, Theme.BigValue, Theme.Text);
             left = DrawStat(g, left, "Average", count > 0 ? (long?)(sum / count) : null, Theme.Value, Theme.Text);
             left = DrawStat(g, left, "Fastest", count > 0 ? (long?)fastest : null, Theme.Value, Theme.Text);
 
             // Outages: a count, not a speed
-            TextRenderer.DrawText(g, "Outages", Theme.Small, new Point(left, 14), Theme.TextSecondary, TextFormatFlags.NoPadding);
-            TextRenderer.DrawText(g, outages.ToString(), Theme.Value, new Point(left, 37), outages > 0 ? Theme.Danger : Theme.Text, TextFormatFlags.NoPadding);
+            TextRenderer.DrawText(g, "Outages", Theme.Small, new Point(left, S(14)), Theme.TextSecondary, TextFormatFlags.NoPadding);
+            TextRenderer.DrawText(g, outages.ToString(), Theme.Value, new Point(left, S(37)), outages > 0 ? Theme.Danger : Theme.Text, TextFormatFlags.NoPadding);
         }
 
         /// <summary>Draws one summary figure: a caption, the speed and its unit. Returns where the next figure starts.</summary>
-        private static int DrawStat(Graphics g, int left, string caption, long? speed, Font font, Color color)
+        private int DrawStat(Graphics g, int left, string caption, long? speed, Font font, Color color)
         {
             const TextFormatFlags flags = TextFormatFlags.NoPadding;
             string number = "–", unit = string.Empty;
@@ -180,16 +180,16 @@ namespace SpeedTest
                 unit = text.Substring(space + 1) + "/s";
             }
 
-            int top = font == Theme.BigValue ? 30 : 37;
+            int top = font == Theme.BigValue ? S(30) : S(37);
             Size numberSize = TextRenderer.MeasureText(g, number, font, Size.Empty, flags);
             Size unitSize = TextRenderer.MeasureText(g, unit, Theme.Small, Size.Empty, flags);
 
-            TextRenderer.DrawText(g, caption, Theme.Small, new Point(left, 14), Theme.TextSecondary, flags);
+            TextRenderer.DrawText(g, caption, Theme.Small, new Point(left, S(14)), Theme.TextSecondary, flags);
             TextRenderer.DrawText(g, number, font, new Point(left, top), color, flags);
-            TextRenderer.DrawText(g, unit, Theme.Small, new Point(left + numberSize.Width + 3, top + numberSize.Height - unitSize.Height - 2), Theme.TextSecondary, flags);
+            TextRenderer.DrawText(g, unit, Theme.Small, new Point(left + numberSize.Width + S(3), top + numberSize.Height - unitSize.Height - S(2)), Theme.TextSecondary, flags);
 
             int captionWidth = TextRenderer.MeasureText(g, caption, Theme.Small, Size.Empty, flags).Width;
-            return left + Math.Max(captionWidth, numberSize.Width + 3 + unitSize.Width) + 32;
+            return left + Math.Max(captionWidth, numberSize.Width + S(3) + unitSize.Width) + S(32);
         }
 
         /// <summary>Shades the times with no connection, and the times the logger wasn't running.</summary>
@@ -273,35 +273,35 @@ namespace SpeedTest
                     float lineY = plot.Bottom - (float)(value / axisMax * plot.Height);
 
                     g.DrawLine(value == 0 ? baseline : grid, plot.Left, lineY, plot.Right, lineY);
-                    TextRenderer.DrawText(g, value.ToString("0.##"), Theme.Small, new Rectangle(0, (int)lineY - 8, plot.Left - 10, 16), Theme.TextMuted, right);
+                    TextRenderer.DrawText(g, value.ToString("0.##"), Theme.Small, new Rectangle(0, (int)lineY - S(8), plot.Left - S(10), S(16)), Theme.TextMuted, right);
                 }
 
-                TextRenderer.DrawText(g, bytes ? "MB/s" : "mb/s", Theme.Small, new Rectangle(0, plot.Top - 26, plot.Left - 10, 16), Theme.TextMuted, right);
+                TextRenderer.DrawText(g, bytes ? "MB/s" : "mb/s", Theme.Small, new Rectangle(0, plot.Top - S(26), plot.Left - S(10), S(16)), Theme.TextMuted, right);
 
                 // Time: labels on round times (every 2 minutes on the 10-minute timeline, and so on), plus "Now" at the right edge
                 int[] stepSeconds = { 120, 300, 600, 7200, 14400 };
                 int timeStep = stepSeconds[Math.Max(0, Math.Min(stepSeconds.Length - 1, Settings.Default.TimeScale))];
                 long offset = (long)TimeZoneInfo.Local.GetUtcOffset(DateTime.Now).TotalSeconds;
                 long tick = (now + offset) / timeStep * timeStep - offset;
-                int labelY = plot.Bottom + 6;
+                int labelY = plot.Bottom + S(6);
 
-                TextRenderer.DrawText(g, "Now", Theme.Small, new Rectangle(plot.Right - 60, labelY, 60, 16), Theme.TextMuted, TextFormatFlags.Right | TextFormatFlags.NoPadding);
+                TextRenderer.DrawText(g, "Now", Theme.Small, new Rectangle(plot.Right - S(60), labelY, S(60), S(16)), Theme.TextMuted, TextFormatFlags.Right | TextFormatFlags.NoPadding);
 
                 for (; tick > timelineStart; tick -= timeStep)
                 {
                     float tickX = x(tick);
 
                     // Leave room for "Now"
-                    if (plot.Right - tickX < 44) continue;
+                    if (plot.Right - tickX < S(44)) continue;
 
                     g.DrawLine(grid, tickX, plot.Top, tickX, plot.Bottom);
-                    TextRenderer.DrawText(g, Global.FromUnixTime(tick).ToString("HH:mm"), Theme.Small, new Rectangle((int)tickX - 30, labelY, 60, 16), Theme.TextMuted, TextFormatFlags.HorizontalCenter | TextFormatFlags.NoPadding);
+                    TextRenderer.DrawText(g, Global.FromUnixTime(tick).ToString("HH:mm"), Theme.Small, new Rectangle((int)tickX - S(30), labelY, S(60), S(16)), Theme.TextMuted, TextFormatFlags.HorizontalCenter | TextFormatFlags.NoPadding);
                 }
             }
         }
 
         /// <summary>Draws the download speed as a line with a light fill under it, and a dot for each test when there are few.</summary>
-        private static void DrawSpeed(Graphics g, Rectangle plot, List<ListViewItem> rows, Func<long, float> x, Func<long, float> y)
+        private void DrawSpeed(Graphics g, Rectangle plot, List<ListViewItem> rows, Func<long, float> x, Func<long, float> y)
         {
             PointF[] points = rows.Select(row => new PointF(x(Global.ToUnixTime((DateTime)row.Tag)), y(Global.ToInt64(row.SubItems[6].Text)))).ToArray();
 
@@ -310,7 +310,7 @@ namespace SpeedTest
                 PointF[] area = points.Concat(new[] { new PointF(points[points.Length - 1].X, plot.Bottom), new PointF(points[0].X, plot.Bottom) }).ToArray();
 
                 using (SolidBrush fill = new SolidBrush(Color.FromArgb(40, Theme.Accent)))
-                using (Pen line = new Pen(Theme.Accent, 2f) { LineJoin = LineJoin.Round })
+                using (Pen line = new Pen(Theme.Accent, S(2f)) { LineJoin = LineJoin.Round })
                 {
                     g.FillPolygon(fill, area);
                     g.DrawLines(line, points);
@@ -321,7 +321,7 @@ namespace SpeedTest
             {
                 using (SolidBrush dot = new SolidBrush(Theme.Accent))
                 {
-                    foreach (PointF point in points) g.FillEllipse(dot, point.X - 2.5f, point.Y - 2.5f, 5, 5);
+                    foreach (PointF point in points) g.FillEllipse(dot, point.X - S(2.5f), point.Y - S(2.5f), S(5f), S(5f));
                 }
             }
         }
@@ -333,14 +333,14 @@ namespace SpeedTest
             string timeline = ComboTimeScale.SelectedIndex >= 0 ? ComboTimeScale.Text.ToLower() : "timeline";
             int middle = plot.Top + plot.Height / 2;
 
-            TextRenderer.DrawText(g, "No tests in the last " + timeline, Theme.Heading, new Rectangle(plot.Left, middle - 20, plot.Width, 20), Theme.Text, centre);
-            TextRenderer.DrawText(g, "Start logging, or choose a longer timeline at the top right.", Theme.Small, new Rectangle(plot.Left, middle + 2, plot.Width, 18), Theme.TextSecondary, centre);
+            TextRenderer.DrawText(g, "No tests in the last " + timeline, Theme.Heading, new Rectangle(plot.Left, middle - S(20), plot.Width, S(20)), Theme.Text, centre);
+            TextRenderer.DrawText(g, "Start logging, or choose a longer timeline at the top right.", Theme.Small, new Rectangle(plot.Left, middle + S(2), plot.Width, S(18)), Theme.TextSecondary, centre);
         }
 
         /// <summary>Draws the key under the graph.</summary>
         private void DrawKey(Graphics g)
         {
-            int left = 20, top = Height - 24;
+            int left = S(20), top = Height - S(24);
 
             left = DrawKeyItem(g, left, top, Theme.Accent, "Download speed");
             left = DrawKeyItem(g, left, top, Theme.DangerLight, "No connection");
@@ -348,9 +348,9 @@ namespace SpeedTest
         }
 
         /// <summary>Draws one key entry: a small rounded swatch and its label. Returns where the next entry starts.</summary>
-        private static int DrawKeyItem(Graphics g, int left, int top, Color color, string label)
+        private int DrawKeyItem(Graphics g, int left, int top, Color color, string label)
         {
-            using (GraphicsPath swatch = Theme.RoundedRectangle(new RectangleF(left, top + 3, 10, 10), 2))
+            using (GraphicsPath swatch = Theme.RoundedRectangle(new RectangleF(left, top + S(3), S(10), S(10)), S(2f)))
             using (SolidBrush brush = new SolidBrush(color))
             using (Pen border = new Pen(Color.FromArgb(40, 0, 0, 0)))
             {
@@ -358,11 +358,17 @@ namespace SpeedTest
                 g.DrawPath(border, swatch);
             }
 
-            TextRenderer.DrawText(g, label, Theme.Small, new Point(left + 16, top), Theme.TextSecondary, TextFormatFlags.NoPadding);
-            return left + 16 + TextRenderer.MeasureText(g, label, Theme.Small, Size.Empty, TextFormatFlags.NoPadding).Width + 20;
+            TextRenderer.DrawText(g, label, Theme.Small, new Point(left + S(16), top), Theme.TextSecondary, TextFormatFlags.NoPadding);
+            return left + S(16) + TextRenderer.MeasureText(g, label, Theme.Small, Size.Empty, TextFormatFlags.NoPadding).Width + S(20);
         }
         #endregion
         #region Private Methods
+        /// <summary>Converts a size designed at 100% display scaling into pixels at this control's DPI.</summary>
+        private int S(int pixels) => Theme.Scale(this, pixels);
+
+        /// <summary>Converts a size designed at 100% display scaling into pixels at this control's DPI.</summary>
+        private float S(float pixels) => Theme.Scale(this, pixels);
+
         /// <summary>Gets a round step for an axis: 1, 2, 2.5 or 5 times a power of ten, at least the specified value.</summary>
         private static double NiceStep(double rough)
         {
