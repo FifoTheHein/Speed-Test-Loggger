@@ -16,7 +16,7 @@
     <PublishUrl>C:\Projects\Speed-Test-Loggger-Publish\</PublishUrl>
     <Install>true</Install>
     <InstallFrom>Web</InstallFrom>
-    <InstallUrl>https://fifotheheim.github.io/Speed-Test-Loggger/</InstallUrl>
+    <InstallUrl>https://fifothehein.github.io/Speed-Test-Loggger/</InstallUrl>
     <UpdateEnabled>true</UpdateEnabled>
     <UpdateMode>Foreground</UpdateMode>
     <UpdateInterval>7</UpdateInterval>
