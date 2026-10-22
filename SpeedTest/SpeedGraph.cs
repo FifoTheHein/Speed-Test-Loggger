@@ -283,13 +283,14 @@ namespace SpeedTest
                         //bool online = false;
                         int onlineCount = 0;
                         long lastItemSpeed = 0;
-                        if (Global.ConnectionLog.Count > 0) lastItemSpeed = Global.ToInt64(Global.ConnectionLog[Global.ConnectionLog.Count - 1].SubItems[5].Text);
+                        if (Global.ConnectionLog.Count > 0) 
+                            lastItemSpeed = Global.ToInt64(Global.ConnectionLog[Global.ConnectionLog.Count - 1].SubItems[6].Text);
 
                         // Bits instead of bytes
                         if (!Settings.Default.SpeedUnits) lastItemSpeed *= 8;
                         
                         List<PointF> points = new List<PointF>();
-                        //List<PointF> loggerPoints = new List<PointF>();
+                        List<PointF> loggerPoints = new List<PointF>();
                         List<PointF> offlinePoints = new List<PointF>();
                         PointF lastPoint = new PointF();
                         //PointF lastOnlinePoint = new PointF();
@@ -309,7 +310,7 @@ namespace SpeedTest
                             // Local variables
                             long itemTime = Global.ToUnixTime((DateTime)Global.ConnectionLog[i].Tag);
                             long elapsedTime = 0;
-                            long itemSpeed = Global.ToInt64(Global.ConnectionLog[i].SubItems[5].Text);
+                            long itemSpeed = Global.ToInt64(Global.ConnectionLog[i].SubItems[6].Text);
 
                             // Bits instead of bytes
                             if (!Settings.Default.SpeedUnits) itemSpeed *= 8;
@@ -355,26 +356,26 @@ namespace SpeedTest
                                 if (Settings.Default.SpeedUnits) e.Graphics.DrawLine(Pens.Green, lastPoint.X, lastPoint.Y, x, (Height - 61) - Global.Percent(itemSpeed, p_MaxBytes, Height - 80));
                                 else e.Graphics.DrawLine(Pens.Green, lastPoint.X, lastPoint.Y, x, (Height - 61) - Global.Percent(itemSpeed, p_MaxBits, Height - 80));
 
-                                //if (Global.ConnectionLog[i].SubItems[4].Text.Equals("Logger Started"))
-                                //{
-                                    //loggerPoints.Add(new PointF(x, 20));
-                                    //loggerPoints.Add(new PointF(x, Height - 60));
+                                if (Global.ConnectionLog[i].SubItems[3].Text.Equals("Logger Started"))
+                                {
+                                    loggerPoints.Add(new PointF(x, 20));
+                                    loggerPoints.Add(new PointF(x, Height - 60));
 
-                                    //e.Graphics.DrawLine(Pens.Yellow, x, 21, x, Height - 60);
-                                //}
-                                //else if (Global.ConnectionLog[i].SubItems[4].Text.Equals("Logger Stopped"))
-                                //{
-                                    //loggerPoints.Add(new PointF(x, Height - 60));
-                                    //loggerPoints.Add(new PointF(x, 20));
+                                    e.Graphics.DrawLine(Pens.Yellow, x, 21, x, Height - 60);
+                                }
+                                else if (Global.ConnectionLog[i].SubItems[3].Text.Equals("Logger Stopped"))
+                                {
+                                    loggerPoints.Add(new PointF(x, Height - 60));
+                                    loggerPoints.Add(new PointF(x, 20));
 
-                                    //using (SolidBrush b2 = new SolidBrush(Color.FromArgb(100, Color.Yellow)))
-                                    //{
-                                        //e.Graphics.FillPolygon(b2, loggerPoints.ToArray());
-                                    //}
-                                    //loggerPoints.Clear();
+                                    using (SolidBrush b2 = new SolidBrush(Color.FromArgb(100, Color.Yellow)))
+                                    {
+                                        e.Graphics.FillPolygon(b2, loggerPoints.ToArray());
+                                    }
+                                    loggerPoints.Clear();
 
-                                    //e.Graphics.DrawLine(Pens.Yellow, x, 21, x, Height - 60);
-                                //}
+                                    e.Graphics.DrawLine(Pens.Yellow, x, 21, x, Height - 60);
+                                }
                                 if (Global.ConnectionLog[i].SubItems[4].Text.Equals("Online"))
                                 {
                                     if (offlinePoints.Count == 0)
@@ -393,7 +394,7 @@ namespace SpeedTest
                                     //online = true;
                                     onlineCount++;
                                 }
-                                else if (Global.ConnectionLog[i].SubItems[4].Text.Equals("Offline"))
+                                else if (Global.ConnectionLog[i].SubItems[3].Text.Equals("Offline"))
                                 {
                                     if (offlinePoints.Count == 2)
                                     {
@@ -424,18 +425,18 @@ namespace SpeedTest
 
                         //if (online)
                         //{
-                            //offlinePoints.Clear();
-                            //offlinePoints.Add(new PointF(40, 20));
-                            //offlinePoints.Add(new PointF(lastOnlinePoint.X, 20));
-                            //offlinePoints.Add(new PointF(lastOnlinePoint.X, Height - 60));
-                            //offlinePoints.Add(new PointF(40, Height - 60));
+                        //    offlinePoints.Clear();
+                        //    offlinePoints.Add(new PointF(40, 20));
+                        //    offlinePoints.Add(new PointF(lastOnlinePoint.X, 20));
+                        //    offlinePoints.Add(new PointF(lastOnlinePoint.X, Height - 60));
+                        //    offlinePoints.Add(new PointF(40, Height - 60));
 
-                            //using (SolidBrush b2 = new SolidBrush(Color.FromArgb(100, Color.Orange)))
-                            //{
-                                //e.Graphics.FillPolygon(b2, offlinePoints.ToArray());
-                            //}
+                        //    using (SolidBrush b2 = new SolidBrush(Color.FromArgb(100, Color.Orange)))
+                        //    {
+                        //        e.Graphics.FillPolygon(b2, offlinePoints.ToArray());
+                        //    }
 
-                            //e.Graphics.DrawLine(Pens.Orange, lastOnlinePoint.X, 21, lastOnlinePoint.X, Height - 60);
+                        //    e.Graphics.DrawLine(Pens.Orange, lastOnlinePoint.X, 21, lastOnlinePoint.X, Height - 60);
                         //}
 
                         if (!firstOfflinePoint.X.Equals(0) && !firstOfflinePoint.Y.Equals(0))

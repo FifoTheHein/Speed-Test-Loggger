@@ -10,6 +10,7 @@ using System.Text.RegularExpressions;
 using System.Windows.Forms;
 using SpeedTest.Properties;
 using Microsoft.Win32;
+using System.Security.Policy;
 #endregion
 namespace SpeedTest
 {
@@ -36,6 +37,15 @@ namespace SpeedTest
         private bool p_StartLogging;
         private DateTime p_StartupTime;
         private System.Threading.Timer p_TimerLog;
+        private Uri FileUri;
+
+        #endregion
+        #region Properties
+        /// <summary>Gets the file name of the last download URL, or "n/a" if no download has started yet.</summary>
+        private string CurrentFileName
+        {
+            get { return FileUri != null && FileUri.Segments.Length > 0 ? FileUri.Segments[FileUri.Segments.Length - 1] : "n/a"; }
+        }
         #endregion
         #region Constructor
         /// <summary>Initializes a new instance of the FormMain class.</summary>
@@ -83,12 +93,13 @@ namespace SpeedTest
                 p_ElapsedSeconds = 0;
 
                 // Create a new ListViewItem object
-                ListViewItem item = new ListViewItem(Global.ConvertTime(DateTime.Now));
-                item.SubItems.Add(Global.ConvertBytes(0) + "/s");
-                item.SubItems.Add(p_CurrentIP);
-                item.SubItems.Add("OK");
-                item.SubItems.Add("Logger Stopped");
-                item.SubItems.Add("0");
+                ListViewItem item = new ListViewItem(Global.ConvertTime(DateTime.Now)); //Time
+                item.SubItems.Add(Global.ConvertBytes(0) + "/s");                       //b/s
+                item.SubItems.Add(p_CurrentIP);                                              //IP
+                item.SubItems.Add("-");                                                 //Message
+                item.SubItems.Add("Logger Stopped");                                    //Status
+                item.SubItems.Add("");                                                  //Filename
+                item.SubItems.Add("0");                                                 //Speed
                 item.ImageIndex = 0;
                 item.Tag = DateTime.Now;
 
@@ -178,12 +189,13 @@ namespace SpeedTest
             StatusMain.Text = "Started logging at: " + Global.ConvertTime(DateTime.Now);
 
             // Create a new ListViewItem object
-            ListViewItem item = new ListViewItem(Global.ConvertTime(DateTime.Now));
-            item.SubItems.Add(Global.ConvertBytes(0) + "/s");
-            item.SubItems.Add(p_CurrentIP);
-            item.SubItems.Add("OK");
-            item.SubItems.Add("Logger Started");
-            item.SubItems.Add("0");
+            ListViewItem item = new ListViewItem(Global.ConvertTime(DateTime.Now));//Time
+            item.SubItems.Add(Global.ConvertBytes(0) + "/s");                      //b/s
+            item.SubItems.Add(p_CurrentIP);                                             //   IP
+            item.SubItems.Add("-");                                                //Message
+            item.SubItems.Add("Logger Started");                                   //Status
+            item.SubItems.Add("n/a");                                              //Filename
+            item.SubItems.Add("0");                                                //Speed
             item.ImageIndex = 1;
             item.Tag = DateTime.Now;
 
@@ -220,12 +232,13 @@ namespace SpeedTest
             StatusMain.Text = "Stopped logging at: " + Global.ConvertTime(DateTime.Now);
 
             // Create a new ListViewItem object
-            ListViewItem item = new ListViewItem(Global.ConvertTime(DateTime.Now));
-            item.SubItems.Add(Global.ConvertBytes(0) + "/s");
-            item.SubItems.Add(p_CurrentIP);
-            item.SubItems.Add("OK");
-            item.SubItems.Add("Logger Stopped");
-            item.SubItems.Add("0");
+            ListViewItem item = new ListViewItem(Global.ConvertTime(DateTime.Now));//Time
+            item.SubItems.Add(Global.ConvertBytes(0) + "/s");                      //b/s
+            item.SubItems.Add(p_CurrentIP);                                             //IP
+            item.SubItems.Add("-");                                                //Message
+            item.SubItems.Add("Logger Stopped");                                   //Status
+            item.SubItems.Add("");                                                 //Filename
+            item.SubItems.Add("0");                                                //Speed
             item.ImageIndex = 1;
             item.Tag = DateTime.Now;
 
@@ -361,25 +374,28 @@ namespace SpeedTest
 
                 switch (Settings.Default.CheckConnection)
                 {
-                    case 0: // 30 Seconds
+                    case 0: // 15 Seconds
+                        if (ts.TotalSeconds >= 15) GetRemoteIP();
+                        break;
+                    case 1: // 30 Seconds
+                        if (ts.TotalSeconds >= 30) GetRemoteIP();
+                        break;
+                    case 2: // 1 Minute
+                        if (ts.TotalMinutes >= 1) GetRemoteIP();
+                        break;
+                    case 3: // 5 Minutes
+                        if (ts.TotalMinutes >= 5) GetRemoteIP();
+                        break;
+                    case 4: // 10 Minutes
                         if (ts.TotalMinutes >= 10) GetRemoteIP();
                         break;
-                    case 1: // 1 Minute
+                    case 5: // 30 Minutes
                         if (ts.TotalMinutes >= 30) GetRemoteIP();
                         break;
-                    case 2: // 5 Minutes
+                    case 6: // 1 Hour
                         if (ts.TotalMinutes >= 60) GetRemoteIP();
                         break;
-   /*                 case 3: // 10 Minutes
-                        if (ts.TotalMinutes >= 10) GetRemoteIP();
-                        break;
-                    case 4: // 30 Minutes
-                        if (ts.TotalMinutes >= 30) GetRemoteIP();
-                        break;
-                    case 5: // 1 Hour
-                        if (ts.TotalMinutes >= 60) GetRemoteIP();
-                        break;
-    * */
+                        
                 }
             }
         }
@@ -403,7 +419,7 @@ namespace SpeedTest
             string ip = (string)e.UserState;
 
             // Local variables
-            string status = "-";
+            string message = "-";
             StatusCode newStatus = StatusCode.Online;
             int imageIndex = 0;
             ListViewItem item = null;
@@ -415,25 +431,33 @@ namespace SpeedTest
 
                 if (!p_CurrentIP.Equals(ip))
                 {
-                    status = "IP Changed";
+                    message = "IP Changed";
                     imageIndex = 1;
                     p_CurrentIP = ip;
                 }
 
-                if (!p_CurrentStatus.Equals(newStatus))
+                if (!p_CurrentStatus.Equals(newStatus) && !p_CurrentStatus.Equals(StatusCode.Online))
                 {
-                    status = "Online";
-                    imageIndex = 1;
+                    message = "Online";
+                    imageIndex = 0;
+                    p_CurrentStatus = newStatus;
+                }
+
+                if (!p_CurrentStatus.Equals(newStatus) && !p_CurrentStatus.Equals(StatusCode.Offline))
+                {
+                    message = "Offline";
+                    imageIndex = 2;
                     p_CurrentStatus = newStatus;
                 }
 
                 // Create a new ListViewItem object
-                item = new ListViewItem(Global.ConvertTime(DateTime.Now));
-                item.SubItems.Add(Global.ConvertBytes(webClient.CurrentSpeed) + "/s");
-                item.SubItems.Add(p_CurrentIP);
-                item.SubItems.Add("OK");
-                item.SubItems.Add(status);
-                item.SubItems.Add(webClient.CurrentSpeed.ToString());
+                item = new ListViewItem(Global.ConvertTime(DateTime.Now));            //Time
+                item.SubItems.Add(Global.ConvertBytes(webClient.CurrentSpeed) + "/s");//b/s
+                item.SubItems.Add(p_CurrentIP);                                            //IP
+                item.SubItems.Add(message);                                                //Message
+                item.SubItems.Add("OK");                                              //Status
+                item.SubItems.Add(CurrentFileName);                                          //Filename
+                item.SubItems.Add(webClient.CurrentSpeed.ToString());                 //Speed
                 item.ImageIndex = imageIndex;
                 item.Tag = DateTime.Now;
             }
@@ -449,25 +473,26 @@ namespace SpeedTest
 
                 if (!p_CurrentIP.Equals(ip))
                 {
-                    status = "IP Changed";
+                    message = "IP Changed";
                     imageIndex = 1;
                     p_CurrentIP = ip;
                 }
 
                 if (!p_CurrentStatus.Equals(newStatus))
                 {
-                    status = "Invalid URL";
+                    message = "Invalid URL";
                     imageIndex = 2;
                     p_CurrentStatus = newStatus;
                 }
 
                 // Create a new ListViewItem object
-                item = new ListViewItem(Global.ConvertTime(DateTime.Now));
-                item.SubItems.Add(Global.ConvertBytes(0) + "/s");
-                item.SubItems.Add(p_CurrentIP);
-                item.SubItems.Add("Error");
-                item.SubItems.Add(status);
-                item.SubItems.Add("0");
+                item = new ListViewItem(Global.ConvertTime(DateTime.Now));//Time
+                item.SubItems.Add(Global.ConvertBytes(0) + "/s");         //b/s
+                item.SubItems.Add(p_CurrentIP);                                //IP
+                item.SubItems.Add(message);                                    //Message
+                item.SubItems.Add("Error");                               //Status
+                item.SubItems.Add("n/a");                                 //Filename
+                item.SubItems.Add("0");                                   //Speed
                 item.ImageIndex = imageIndex;
                 item.Tag = DateTime.Now;
             }
@@ -530,7 +555,7 @@ namespace SpeedTest
 
             // Local variables
             string ip = "-";
-            string status = "-";
+            string message = "-";
             StatusCode newStatus = StatusCode.Online;
             int imageIndex = 0;
             // Regex to match IP address
@@ -554,7 +579,7 @@ namespace SpeedTest
 
                     foreach (ListViewItem item in Global.ConnectionLog)
                     {
-                        long speed = Global.ToInt64(item.SubItems[5].Text);
+                        long speed = Global.ToInt64(item.SubItems[6].Text);
 
                         if (speed > maximumSpeed) maximumSpeed = speed;
                     }
@@ -562,23 +587,29 @@ namespace SpeedTest
                     // Auto-select URL based on maximum download speed
                     if (maximumSpeed < 1024000)
                     {
-                        // Download 3 MB file
-                        url = "http://onlyforusebyspeedtest.loggger.com/~3mbfile.zip";
+                        // Download 100k file
+                        url = "https://app.tfn.co.za/test/test100k.zip";
                     }
-                    else if (maximumSpeed < 1024000 * 5)
-                    {
-                        // Download 6 MB file
-                        url = "http://onlyforusebyspeedtest.loggger.com/~6mbfile.zip";
-                    }
+                    //else if (maximumSpeed < 1024000 * 5)
+                    //{
+                    //    // Download 1 MB file
+                    //    url = "https://app.tfn.co.za/test/test1mb.zip";
+                    //}
                     else
                     {
-                        // Download 12 MB file
-                        url = "http://onlyforusebyspeedtest.loggger.com/~12mbfile.zip";
+                        // Download 1 MB file
+                        url = "https://app.tfn.co.za/test/test1mb.zip";
                     }
 
-                    webClient.DownloadDataAsync(new Uri(url), ip);
+                    FileUri = new Uri(url);
+
+                    webClient.DownloadDataAsync(FileUri, ip);
                 }
-                else webClient.DownloadDataAsync(new Uri(Settings.Default.DownloadURL), ip);
+                else
+                {
+                    FileUri = new Uri(Settings.Default.DownloadURL);
+                    webClient.DownloadDataAsync(FileUri, ip);
+                }
             }
             else // An error occured downloading the string
             {
@@ -591,25 +622,26 @@ namespace SpeedTest
 
                 if (!p_CurrentIP.Equals(ip))
                 {
-                    status = "IP Changed";
+                    message = "IP Changed";
                     imageIndex = 1;
                     p_CurrentIP = ip;
                 }
 
                 if (!p_CurrentStatus.Equals(newStatus))
                 {
-                    status = "Offline";
+                    message = "Offline";
                     imageIndex = 2;
                     p_CurrentStatus = newStatus;
                 }
 
                 // Create a new ListViewItem object
-                ListViewItem item = new ListViewItem(Global.ConvertTime(DateTime.Now));
-                item.SubItems.Add(Global.ConvertBytes(0) + "/s");
-                item.SubItems.Add(p_CurrentIP);
-                item.SubItems.Add("Offline");
-                item.SubItems.Add(status);
-                item.SubItems.Add("0");
+                ListViewItem item = new ListViewItem(Global.ConvertTime(DateTime.Now));//Time
+                item.SubItems.Add(Global.ConvertBytes(0) + "/s");                      //b/s
+                item.SubItems.Add(p_CurrentIP);                                             //IP
+                item.SubItems.Add(message);                                                 //Message
+                item.SubItems.Add("Offline");                                          //Status
+                item.SubItems.Add(CurrentFileName);                                           //Filename
+                item.SubItems.Add("0");                                                //Speed
                 item.ImageIndex = imageIndex;
                 item.Tag = DateTime.Now;
 
@@ -677,32 +709,33 @@ namespace SpeedTest
                 StatusCode newStatus = StatusCode.Offline;
                 int imageIndex = 2;
                 string ip = "-";
-                string status = "-";
+                string message = "-";
 
                 // Set status to Offline
                 StatusMain.Text = "Unable to test speed: " + Global.ConvertTime(DateTime.Now);
 
                 if (!p_CurrentIP.Equals(ip))
                 {
-                    status = "IP Changed";
+                    message = "IP Changed";
                     imageIndex = 1;
                     p_CurrentIP = ip;
                 }
 
                 if (!p_CurrentStatus.Equals(newStatus))
                 {
-                    status = "Offline";
-                    imageIndex = 1;
+                    message = "Offline";
+                    imageIndex = 2;
                     p_CurrentStatus = newStatus;
                 }
 
                 // Create a new ListViewItem object
-                ListViewItem item = new ListViewItem(Global.ConvertTime(DateTime.Now));
-                item.SubItems.Add(Global.ConvertBytes(0) + "/s");
-                item.SubItems.Add(p_CurrentIP);
-                item.SubItems.Add("Offline");
-                item.SubItems.Add(status);
-                item.SubItems.Add("0");
+                ListViewItem item = new ListViewItem(Global.ConvertTime(DateTime.Now));//Time
+                item.SubItems.Add(Global.ConvertBytes(0) + "/s");                      //b/s
+                item.SubItems.Add(p_CurrentIP);                                             //IP
+                item.SubItems.Add(message);                                                 //Message
+                item.SubItems.Add("Offline");                                          //Status
+                item.SubItems.Add(CurrentFileName);                                           //Filename
+                item.SubItems.Add("0");                                                //Speed
                 item.ImageIndex = imageIndex;
                 item.Tag = DateTime.Now;
 

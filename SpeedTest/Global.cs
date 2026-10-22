@@ -18,14 +18,14 @@ namespace SpeedTest
         #region Enums
         /// <summary>Returned by the GetThemeMargins function to define the margins of windows that have visual styles applied.</summary>
         [StructLayout(LayoutKind.Sequential)]
-        public struct MARGINS
+        public struct Margins
         {
             public int cxLeftWidth;
             public int cxRightWidth;
             public int cyTopHeight;
             public int cyBottomHeight;
 
-            public MARGINS(Margins margins)
+            public Margins(System.Drawing.Printing.Margins margins)
             {
                 cxLeftWidth = margins.Left;
                 cxRightWidth = margins.Right;
@@ -33,7 +33,7 @@ namespace SpeedTest
                 cyBottomHeight = margins.Bottom;
             }
 
-            public MARGINS(int left, int right, int top, int bottom)
+            public Margins(int left, int right, int top, int bottom)
             {
                 cxLeftWidth = left;
                 cxRightWidth = right;
@@ -44,9 +44,8 @@ namespace SpeedTest
         #endregion
         #region Members
         // Global variables
-        private static FormMain g_FormMain;
-        private static List<ListViewItem> g_ConnectionLog;
-        //private static WindowsMediaPlayer g_MediaPlayer;
+        private static FormMain _gFormMain;
+        private static List<ListViewItem> _gConnectionLog;
         #endregion
         #region Properties
         /// <summary>Gets a value indicating whether Desktop Composition is enabled on the system.</summary>
@@ -56,7 +55,7 @@ namespace SpeedTest
             {
                 if (Environment.OSVersion.Version.Major < 6) return false;
 
-                bool result = false;
+                var result = false;
 
                 DwmIsCompositionEnabled(ref result);
 
@@ -65,16 +64,10 @@ namespace SpeedTest
         }
 
         /// <summary>Gets the main Form associated with this application.</summary>
-        public static FormMain FormMain
-        {
-            get { return g_FormMain; }
-        }
+        public static FormMain FormMain => _gFormMain;
 
         /// <summary>Gets the connection log associated with this application.</summary>
-        public static List<ListViewItem> ConnectionLog
-        {
-            get { return g_ConnectionLog; }
-        }
+        public static List<ListViewItem> ConnectionLog => _gConnectionLog;
 
         /// <summary>Gets a value determining if this computer is currently connected to the network.</summary>
         public static bool IsOnline
@@ -83,13 +76,13 @@ namespace SpeedTest
             {
                 try
                 {
-                    Ping myPing = new Ping();
-                    String host = "google.com";
-                    byte[] buffer = new byte[32];
-                    PingOptions pingOptions = new PingOptions();
-                    PingReply reply = myPing.Send(host, 1000, buffer, pingOptions);
+                    var myPing = new Ping();
+                    var host = "google.com";
+                    var buffer = new byte[32];
+                    var pingOptions = new PingOptions();
+                    var reply = myPing.Send(host, 1000, buffer, pingOptions);
 
-                    return reply.Status == IPStatus.Success;
+                    return reply != null && reply.Status == IPStatus.Success;
                 }
                 catch
                 {
@@ -99,13 +92,8 @@ namespace SpeedTest
         }
 
         /// <summary>Gets a value determining if this computer is currently running Windows 8.</summary>
-        public static bool IsWindows8
-        {
-            get
-            {
-                return Environment.OSVersion.Version.Major.Equals(6) && Environment.OSVersion.Version.Minor.Equals(2);
-            }
-        }
+        public static bool IsWindows8 => Environment.OSVersion.Version.Major.Equals(6) && Environment.OSVersion.Version.Minor.Equals(2);
+
         #endregion
         #region Entry Point
         /// <summary>The main entry point of the application.</summary>
@@ -113,22 +101,23 @@ namespace SpeedTest
         static void Main(string[] args)
         {
             // Local variables
-            bool startLogging = false;
-            if (args.Length > 0) startLogging = true;
-            
+            bool startLogging = args.Length > 0;
+
             // Enable visual styles for the application
             Application.EnableVisualStyles();
             Application.SetCompatibleTextRenderingDefault(false);
 
             // Initialize global variables
-            g_FormMain = new FormMain(startLogging);
-            g_ConnectionLog = new List<ListViewItem>();
+            _gFormMain = new FormMain(startLogging);
+            _gConnectionLog = new List<ListViewItem>();
 
             // Initialize settings
-            if (string.IsNullOrEmpty(Settings.Default.DownloadURL)) Settings.Default.DownloadURL = "http://loggger.com/bigfile.zip";
-            if (string.IsNullOrEmpty(Settings.Default.IPDetectURL)) Settings.Default.IPDetectURL = "http://icanhazip.com";
-            if (string.IsNullOrEmpty(Settings.Default.LogFile)) Settings.Default.LogFile = Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData) + Path.DirectorySeparatorChar + "SpeedTest" + Path.DirectorySeparatorChar + "SpeedTestLog.csv";
-            if (Settings.Default.LogFile.ToLower().StartsWith(Application.StartupPath.ToLower())) Settings.Default.LogFile = Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData) + Path.DirectorySeparatorChar + "SpeedTest" + Path.DirectorySeparatorChar + "ConnectionLog.csv";
+            if (string.IsNullOrEmpty(Settings.Default.DownloadURL))
+                Settings.Default.DownloadURL = "https://app.tfn.co.za/test/test100k.zip";
+            if (string.IsNullOrEmpty(Settings.Default.IPDetectURL))
+                Settings.Default.IPDetectURL = "http://icanhazip.com";
+            if (string.IsNullOrEmpty(Settings.Default.LogFile)) Settings.Default.LogFile = Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData) + Path.DirectorySeparatorChar + "SpeedTest" + Path.DirectorySeparatorChar + "SpeedTestLog2.csv";
+            if (Settings.Default.LogFile.ToLower().StartsWith(Application.StartupPath.ToLower())) Settings.Default.LogFile = Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData) + Path.DirectorySeparatorChar + "SpeedTest" + Path.DirectorySeparatorChar + "ConnectionLog2.csv";
 
             // Create SpeedTest folder
             if (!Directory.Exists(Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData) + Path.DirectorySeparatorChar + "SpeedTest")) Directory.CreateDirectory(Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData) + Path.DirectorySeparatorChar + "SpeedTest");
@@ -137,13 +126,15 @@ namespace SpeedTest
             LoadConnectionLog(Settings.Default.LogFile);
 
             // Begin running the application
-            Application.Run(g_FormMain);
+            Application.Run(_gFormMain);
         }
         #endregion
         #region External Methods
+        // ReSharper disable once StringLiteralTypo
         [DllImport("dwmapi.dll")]
-        public static extern void DwmExtendFrameIntoClientArea(IntPtr hWnd, ref MARGINS pMargins);
+        public static extern void DwmExtendFrameIntoClientArea(IntPtr hWnd, ref Margins pMargins);
 
+        // ReSharper disable once StringLiteralTypo
         [DllImport("dwmapi.dll")]
         public static extern void DwmIsCompositionEnabled(ref bool pfEnabled);
 
@@ -224,7 +215,7 @@ namespace SpeedTest
             return null;
         }
 
-        /// <summary>Converts the specified DateTime obejct into a human-readable string.</summary>
+        /// <summary>Converts the specified DateTime object into a human-readable string.</summary>
         public static string ConvertTime(DateTime time)
         {
             switch (Settings.Default.TimeFormat)
@@ -241,9 +232,9 @@ namespace SpeedTest
         }
 
         /// <summary>Extends the window frame into the client area.</summary>
-        public static void ExtendFrame(IntPtr handle, Margins margins)
+        public static void ExtendFrame(IntPtr handle, System.Drawing.Printing.Margins margins)
         {
-            MARGINS m = new MARGINS(margins);
+            var m = new Margins(margins);
             DwmExtendFrameIntoClientArea(handle, ref m);
         }
 
@@ -252,7 +243,7 @@ namespace SpeedTest
         {
             if (time == 0) return DateTime.Now;
 
-            DateTime epoch = new DateTime(1970, 1, 1, 0, 0, 0, 0);
+            var epoch = new DateTime(1970, 1, 1, 0, 0, 0, 0);
             return epoch.AddSeconds(Convert.ToDouble(time)).ToLocalTime();
         }
 
@@ -263,9 +254,9 @@ namespace SpeedTest
             {
                 if (File.Exists(fileName))
                 {
-                    using (StreamReader reader = new StreamReader(fileName))
+                    using (var reader = new StreamReader(fileName))
                     {
-                        string line = reader.ReadLine();
+                        var line = reader.ReadLine();
 
                         while (!string.IsNullOrEmpty(line))
                         {
@@ -275,22 +266,25 @@ namespace SpeedTest
                                 continue;
                             }
 
-                            string[] s = line.Split(new char[] { ',' }, StringSplitOptions.RemoveEmptyEntries);
+                            var s = line.Split(new[] { ',' }, StringSplitOptions.RemoveEmptyEntries);
 
                             if (s.Length > 5)
                             {
-                                DateTime time = FromUnixTime(ToInt64(s[1]));
+                                var time = FromUnixTime(ToInt64(s[1]));
 
-                                ListViewItem item = new ListViewItem(Global.ConvertTime(time)); // Time (String)
-                                item.SubItems.Add(Global.ConvertBytes(ToInt64(s[3]))); // Speed (String)
-                                item.SubItems.Add(s[5]); // IP
-                                item.SubItems.Add(s[6]); // Message
-                                item.SubItems.Add(s[7]); // Status
-                                item.SubItems.Add(s[3]); // Speed (Bytes)
-                                item.ImageIndex = ToInt32(s[0]); // Index
-                                item.Tag = time; // Time (DateTime)
+                                var item = new ListViewItem(Global.ConvertTime(time)) // Time (String)
+                                {
+                                    ImageIndex = ToInt32(s[0]), // Index
+                                    Tag = time // Time (DateTime)
+                                };
+                                item.SubItems.Add(ConvertBytes(ToInt64(s[3]))); // Speed (String)
+                                item.SubItems.Add(s[4]); // IP
+                                item.SubItems.Add(s[5]); // Message
+                                item.SubItems.Add(s[6]); // Status
+                                item.SubItems.Add(s[7]); //Filename
+                                item.SubItems.Add(s[8]); // Speed (Bytes)
 
-                                g_ConnectionLog.Add(item);
+                                _gConnectionLog.Add(item);
                             }
 
                             line = reader.ReadLine();
@@ -298,7 +292,10 @@ namespace SpeedTest
                     }
                 }
             }
-            catch { }
+            catch
+            {
+                //Suppress
+            }
         }
 
         /// <summary>Calculates a percentage (0.0-max%) given the specified values.</summary>
@@ -314,7 +311,7 @@ namespace SpeedTest
         {
             if (complete == 0 || total == 0) return 0;
 
-            double result = Convert.ToDouble(complete) / Convert.ToDouble(total);
+            var result = Convert.ToDouble(complete) / Convert.ToDouble(total);
             result *= Convert.ToDouble(max);
 
             return Convert.ToInt32(result);
@@ -325,22 +322,31 @@ namespace SpeedTest
         {
             try
             {
-                using (StreamWriter writer = new StreamWriter(fileName))
+                using (var writer = new StreamWriter(fileName))
                 {
-                    writer.WriteLine("Index,Time(U),Time(S),Speed(B),Speed(S),IP,Message,Status");
+                    writer.WriteLine("Index,Time(U),Time(S),Speed(S),IP,Message,Status,Filename,Speed(B)");
 
-                    foreach (ListViewItem item in g_ConnectionLog)
+                    foreach (var item in _gConnectionLog)
                     {
-                        DateTime time = (DateTime)item.Tag;
+                        var time = (DateTime)item.Tag;
 
-                        writer.WriteLine(item.ImageIndex.ToString() + "," + // Index
-                            ToUnixTime(time).ToString() + "," + // Time (Unix Timestamp)
-                            ConvertTime(time) + "," + // Time (String)
-                            item.SubItems[5].Text + "," + // Speed (Bytes)
-                            item.SubItems[1].Text + "," + // Speed (String)
-                            item.SubItems[2].Text + "," + // IP
-                            item.SubItems[3].Text + "," + // Message
-                            item.SubItems[4].Text); // Status
+                        writer.WriteLine(item.ImageIndex + "," + // Index
+                            ToUnixTime(time) + "," +             // Time (Unix Timestamp)
+                            ConvertTime(time) + "," +            // Time (String)
+                            item.SubItems[1].Text + "," +        // Speed (String)
+                            item.SubItems[2].Text + "," +        // IP
+                            item.SubItems[3].Text + "," +        // Message
+                            item.SubItems[4].Text + "," +         // Status
+                            item.SubItems[5].Text + "," +         // Filename
+                            item.SubItems[6].Text);              // Speed
+
+                        //Time
+                        //b/s
+                        //IP
+                        //Message
+                        //Status
+                        //Filename
+                        //Speed
                     }
                 }
             }
@@ -361,19 +367,13 @@ namespace SpeedTest
         /// <summary>Converts a string value into a Int32 value.</summary>
         public static int ToInt32(string s)
         {
-            int result = 0;
-
-            if (Int32.TryParse(s, out result)) return result;
-            return 0;
+            return int.TryParse(s, out var result) ? result : 0;
         }
 
         /// <summary>Converts a string value into a Int64 value.</summary>
         public static long ToInt64(string s)
         {
-            long result = 0;
-
-            if (Int64.TryParse(s, out result)) return result;
-            return 0;
+            return long.TryParse(s, out var result) ? result : 0;
         }
 
         /// <summary>Converts a DateTime object into a Unix Timestamp value.</summary>
