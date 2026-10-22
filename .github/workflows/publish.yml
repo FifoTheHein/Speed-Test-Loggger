@@ -1,0 +1,89 @@
+name: Publish release
+
+# Builds the ClickOnce app for a release tag, deploys it to GitHub Pages (the
+# install and update URL in SpeedTest.csproj) and attaches setup.exe to the release.
+on:
+  release:
+    types: [published]
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: Release tag to publish (for example v1.4.0)
+        required: true
+
+permissions:
+  contents: write
+  pages: write
+  id-token: write
+
+concurrency:
+  group: pages
+  cancel-in-progress: false
+
+env:
+  TAG: ${{ github.event.release.tag_name || inputs.tag }}
+
+jobs:
+  build:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ env.TAG }}
+
+      - name: Check tag matches project version
+        shell: pwsh
+        run: |
+          $version = $env:TAG.TrimStart('v')
+          if ($version -notmatch '^\d+\.\d+\.\d+$') { throw "Tag '$env:TAG' must look like v1.2.3" }
+          $csproj = [xml](Get-Content SpeedTest/SpeedTest.csproj)
+          $appVersion = @($csproj.Project.PropertyGroup.ApplicationVersion | Where-Object { $_ })[0]
+          if (-not $appVersion.StartsWith("$version.")) { throw "Tag '$env:TAG' doesn't match ApplicationVersion '$appVersion' in SpeedTest.csproj - bump the version first" }
+          "VERSION=$version.0" >> $env:GITHUB_ENV
+
+      - name: Import signing certificate
+        shell: pwsh
+        env:
+          PFX_BASE64: ${{ secrets.SIGNING_PFX_BASE64 }}
+          PFX_PASSWORD: ${{ secrets.SIGNING_PFX_PASSWORD }}
+        run: |
+          $pfx = Join-Path $env:GITHUB_WORKSPACE 'SpeedTest\Speedtest_TemporaryKey.pfx'
+          [IO.File]::WriteAllBytes($pfx, [Convert]::FromBase64String($env:PFX_BASE64))
+          $password = ConvertTo-SecureString $env:PFX_PASSWORD -AsPlainText -Force
+          Import-PfxCertificate -FilePath $pfx -CertStoreLocation Cert:\CurrentUser\My -Password $password | Out-Null
+
+      - uses: microsoft/setup-msbuild@v2
+
+      - name: Publish ClickOnce
+        shell: pwsh
+        # Every release is a required update, so clients can't skip it
+        run: msbuild SpeedTest\SpeedTest.csproj /t:Publish /p:Configuration=Release /p:ApplicationVersion=$env:VERSION /p:MinimumRequiredVersion=$env:VERSION /p:UpdateRequired=true /v:minimal /nologo
+
+      - name: Assemble site
+        shell: pwsh
+        run: |
+          $pub = 'SpeedTest\bin\Release\app.publish'
+          $folder = 'SpeedTestLoggger_' + $env:VERSION.Replace('.', '_')
+          New-Item -ItemType Directory -Force '_site\Application Files' | Out-Null
+          Copy-Item "$pub\setup.exe", "$pub\SpeedTestLoggger.application", 'deploy\index.html' _site
+          Copy-Item "$pub\Application Files\$folder" '_site\Application Files' -Recurse
+
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: _site
+
+      - name: Attach setup.exe to the release
+        shell: pwsh
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: gh release upload $env:TAG _site\setup.exe --clobber
+
+  deploy:
+    needs: build
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - id: deployment
+        uses: actions/deploy-pages@v4
