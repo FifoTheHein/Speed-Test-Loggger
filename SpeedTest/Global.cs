@@ -6,7 +6,6 @@ using System.Drawing.Printing;
 using System.Globalization;
 using System.IO;
 using System.Runtime.InteropServices;
-using System.Net.NetworkInformation;
 using System.Text;
 using System.Windows.Forms;
 using SpeedTest.Properties;
@@ -78,28 +77,6 @@ namespace SpeedTest
 
         /// <summary>Gets the error from the last save of the connection log, or null if it succeeded.</summary>
         public static string LastSaveError => _gLastSaveError;
-
-        /// <summary>Gets a value determining if this computer is currently connected to the network.</summary>
-        public static bool IsOnline
-        {
-            get
-            {
-                try
-                {
-                    var myPing = new Ping();
-                    var host = "google.com";
-                    var buffer = new byte[32];
-                    var pingOptions = new PingOptions();
-                    var reply = myPing.Send(host, 1000, buffer, pingOptions);
-
-                    return reply != null && reply.Status == IPStatus.Success;
-                }
-                catch
-                {
-                    return false;
-                }
-            }
-        }
 
         /// <summary>Gets the folder that holds the connection log and the auto-start flag.</summary>
         public static string AppDataFolder => Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData), "SpeedTest");
