@@ -49,7 +49,6 @@
             this.GroupSpeedUnits = new System.Windows.Forms.GroupBox();
             this.RadioBytesPerSecond = new System.Windows.Forms.RadioButton();
             this.RadioBitsPerSecond = new System.Windows.Forms.RadioButton();
-            this.label1 = new System.Windows.Forms.Label();
             this.GroupAPIURL = new System.Windows.Forms.GroupBox();
             this.TextIPDetectURL = new System.Windows.Forms.TextBox();
             this.RadioCustomIPDetect = new System.Windows.Forms.RadioButton();
@@ -307,17 +306,6 @@
             this.RadioBitsPerSecond.Text = "Bits per-second - kb/s, mb/s";
             this.RadioBitsPerSecond.UseVisualStyleBackColor = true;
             // 
-            // label1
-            // 
-            this.label1.AutoSize = true;
-            this.label1.ForeColor = System.Drawing.Color.FromArgb(((int)(((byte)(128)))), ((int)(((byte)(64)))), ((int)(((byte)(0)))));
-            this.label1.Location = new System.Drawing.Point(214, 409);
-            this.label1.Name = "label1";
-            this.label1.Size = new System.Drawing.Size(118, 26);
-            this.label1.TabIndex = 20;
-            this.label1.Text = "Need shorter intervalls?\r\nSee http://loggger.com\r\n";
-            this.label1.Click += new System.EventHandler(this.label1_Click);
-            // 
             // GroupAPIURL
             // 
             this.GroupAPIURL.Anchor = ((System.Windows.Forms.AnchorStyles)(((System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Left)
@@ -373,7 +361,6 @@
             this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.None;
             this.ClientSize = new System.Drawing.Size(344, 529);
             this.Controls.Add(this.GroupAPIURL);
-            this.Controls.Add(this.label1);
             this.Controls.Add(this.GroupSpeedUnits);
             this.Controls.Add(this.GroupDownloadURL);
             this.Controls.Add(this.ButtonOpenLog);
@@ -431,7 +418,6 @@
         private System.Windows.Forms.GroupBox GroupSpeedUnits;
         private System.Windows.Forms.RadioButton RadioBytesPerSecond;
         private System.Windows.Forms.RadioButton RadioBitsPerSecond;
-        private System.Windows.Forms.Label label1;
         private System.Windows.Forms.GroupBox GroupAPIURL;
         private System.Windows.Forms.TextBox TextIPDetectURL;
         private System.Windows.Forms.RadioButton RadioCustomIPDetect;
