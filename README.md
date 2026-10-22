@@ -1,6 +1,10 @@
+<img src="docs/images/icon.png" alt="" width="64" align="left">
+
 # Speed Test Loggger
 
 A Windows app that tests your download speed on a schedule, graphs it over time and logs internet outages, so you can see how reliable your connection really is.
+
+![The main window: a summary of the last, average and fastest speeds, a graph of speed over the last 10 minutes with an outage shaded, and the list of test results](docs/images/screenshot-main.png)
 
 ## Install
 
@@ -14,10 +18,13 @@ Go to **https://fifothehein.github.io/Speed-Test-Loggger/** and click **Download
 
 ## Using it
 
-- **Start Logging** runs a speed test on the interval set in *Configuration Settings*, from every 15 seconds to every hour.
+- **Start** runs a speed test on the interval set in *Settings*, from every 15 seconds to every hour. The status bar shows whether it's logging.
 - Each test records the time, your public IP, the download speed and whether you were online.
-- The graph shows speed over the last 10 minutes up to 24 hours.
-- The log is saved as a CSV file. Use *Configuration Settings → Open Log File* to open it.
+- The graph shows speed over the last 10 minutes up to 24 hours, with the last, average and fastest speeds and the number of outages above it. Red bands mark times with no connection, and grey bands times the logger wasn't running.
+- The toolbar's **Successful**, **Status changes** and **Errors** buttons choose which results the list shows.
+- The log is saved as a CSV file. Use *Settings → Open log file* to open it.
+
+<img src="docs/images/screenshot-settings.png" alt="The settings window: test file, IP lookup, display and logging sections" width="380">
 
 ## Building
 

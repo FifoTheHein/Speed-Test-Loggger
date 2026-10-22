@@ -20,7 +20,23 @@ namespace SpeedTest
             InitializeComponent();
 
             // Initialize FormSettings properties
-            Font = SystemFonts.MenuFont;
+            Font = Theme.UI;
+
+            // Flat buttons, with OK as the one accent button; a folder icon for choosing the log file
+            Theme.StyleButton(ButtonOK, true);
+            Theme.StyleButton(ButtonCancel, false);
+            Theme.StyleButton(ButtonOpenLog, false);
+            Theme.StyleButton(ButtonLogFile, false);
+            ButtonOpenLog.Image = Theme.Icon(Theme.GlyphDocument, 16, Theme.Text);
+            ButtonOpenLog.TextImageRelation = TextImageRelation.ImageBeforeText;
+            ButtonLogFile.Image = Theme.Icon(Theme.GlyphFolder, 16, Theme.Text);
+            if (ButtonLogFile.Image != null) ButtonLogFile.Text = string.Empty;
+
+            // Show each date format with the current time, instead of a pattern
+            DateTime now = DateTime.Now;
+            RadioISOFormat.Text = "ISO date, 24h clock: " + now.ToString("yyyy/MM/dd HH:mm");
+            RadioEUFormat.Text = "EU date, 24h clock: " + now.ToString("dd/MM/yyyy HH:mm");
+            RadioUSFormat.Text = "US date, 12h clock: " + now.ToString("MM/dd/yyyy hh:mm tt");
 
             // Initialize child controls
             RadioAutoDownload.Checked = Settings.Default.AutoDownload;

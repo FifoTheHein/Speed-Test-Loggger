@@ -15,6 +15,9 @@ WinForms app on .NET Framework 4.8 (C#) that runs download speed tests on a sche
 | `SpeedTest/CustomWebClient.cs` | `WebClient` that times the test download (`StartTimedDownload`) |
 | `SpeedTest/SpeedGraph.cs` | Graph control |
 | `SpeedTest/FormSettings.cs` | Settings dialog |
+| `SpeedTest/Theme.cs` | Colours, fonts, line icons, the flat toolbar/menu renderer (`FlatRenderer`) and settings sections (`SectionBox`) |
+| `tools/make-icon.ps1` | Draws the app icon and writes `AppIcon.ico`, the window resources and the PNGs |
+| `docs/images/` | README icon and screenshots |
 | `.github/workflows/publish.yml` | Release workflow: builds, signs, deploys to Pages |
 | `deploy/index.html` | Install page on the Pages site |
 
@@ -64,6 +67,29 @@ WinForms app on .NET Framework 4.8 (C#) that runs download speed tests on a sche
   - Paths under AppData are written as `%APPDATA%`, because cmd reads scripts in the OEM code page.
   - Never launch the exe from ClickOnce's versioned `Apps\2.0` folder: that skips updates and breaks after one.
 - **Testing auto-start by reflection:** `Application.ExecutablePath` is the PowerShell exe, so the fallback script names `powershell.exe`. That's expected.
+
+## Look and feel
+
+- **Theme:** the look is light and flat, in the style of Windows 11. Use `Theme`'s colours and fonts rather than new literals, and `Theme.StyleButton` for buttons, with only one accent (primary) button per window.
+- **Icons:**
+  - Toolbar, menu and list icons are glyphs from Segoe Fluent Icons or Segoe MDL2 Assets, drawn by `Theme.Icon`.
+  - When neither font exists, `Theme.Icon` returns null. Callers fall back to the original bitmaps in `ImageListMain` and `ImageListLog`, so keep those.
+- **Toolbar, status bar and tray menu:** these are `ToolStrip`, `StatusStrip` and `ContextMenuStrip` with `FlatRenderer`, not the old `ToolBar`, `StatusBar` and `ContextMenu`.
+  - The toolbar toggles use `.Checked`.
+  - The status bar uses `HorizontalStackWithOverflow`, with `StatusMain` aligned right. `Spring` with the default Table layout pushed the label onto a hidden second row.
+- **Graph (`SpeedGraph.OnPaint`):**
+  - **Layout:** a summary row (last, average and fastest speeds, and outages), a plot with round axis steps (`NiceStep`), and a key.
+  - **Bands:** outages are red and logger-off times grey (`DrawBands`).
+  - **Empty state:** when nothing is on the timeline, the graph explains that instead of looking blank.
+- **App icon:**
+  - Run `powershell -ExecutionPolicy Bypass -File tools\make-icon.ps1 -UpdateResx` after changing the drawing.
+  - It writes `SpeedTest\AppIcon.ico`, used for the exe and the ClickOnce shortcut, and the window and tray icons inside the `.resx` files.
+  - It also writes `docs\images\icon.png` and `deploy\icon.png`.
+- **README screenshots:**
+  - Use sample data only: a documentation IP such as `203.0.113.7`, default settings and a generic log path. Never the developer's real log, IP or user name, because the repo is public.
+  - Capture with `PrintWindow` and `PW_RENDERFULLCONTENT` to get the real window frame, then crop the 7–8 px invisible resize border, which comes out black.
+  - `DrawToBitmap` draws an old-style frame, so use it only for quick checks.
+- **Display scaling:** the app isn't DPI-aware, because forms use `AutoScaleMode.None`. Above 100% scaling, Windows stretches it slightly.
 
 ## Building and testing
 

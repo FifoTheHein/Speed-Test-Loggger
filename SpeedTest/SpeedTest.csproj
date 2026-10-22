@@ -96,6 +96,7 @@
       <DependentUpon>FormSettings.cs</DependentUpon>
     </Compile>
     <Compile Include="Global.cs" />
+    <Compile Include="Theme.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
     <Compile Include="SpeedGraph.cs">
       <SubType>UserControl</SubType>

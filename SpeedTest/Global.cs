@@ -13,33 +13,6 @@ namespace SpeedTest
     /// <summary>The main class containing global objects and the entry point of the application.</summary>
     public static class Global
     {
-        #region Enums
-        /// <summary>Returned by the GetThemeMargins function to define the margins of windows that have visual styles applied.</summary>
-        [StructLayout(LayoutKind.Sequential)]
-        public struct Margins
-        {
-            public int cxLeftWidth;
-            public int cxRightWidth;
-            public int cyTopHeight;
-            public int cyBottomHeight;
-
-            public Margins(System.Drawing.Printing.Margins margins)
-            {
-                cxLeftWidth = margins.Left;
-                cxRightWidth = margins.Right;
-                cyTopHeight = margins.Top;
-                cyBottomHeight = margins.Bottom;
-            }
-
-            public Margins(int left, int right, int top, int bottom)
-            {
-                cxLeftWidth = left;
-                cxRightWidth = right;
-                cyTopHeight = top;
-                cyBottomHeight = bottom;
-            }
-        }
-        #endregion
         #region Members
         // Global variables
         private static FormMain _gFormMain;
@@ -55,21 +28,6 @@ namespace SpeedTest
         private static string _gLastSaveError;
         #endregion
         #region Properties
-        /// <summary>Gets a value indicating whether Desktop Composition is enabled on the system.</summary>
-        public static bool CompositionEnabled
-        {
-            get
-            {
-                if (Environment.OSVersion.Version.Major < 6) return false;
-
-                var result = false;
-
-                DwmIsCompositionEnabled(ref result);
-
-                return result;
-            }
-        }
-
         /// <summary>Gets the main Form associated with this application.</summary>
         public static FormMain FormMain => _gFormMain;
 
@@ -84,9 +42,6 @@ namespace SpeedTest
 
         /// <summary>Gets the file the Windows Startup script creates, so the app knows to start logging. A ClickOnce shortcut can't pass /start.</summary>
         public static string AutoStartFlagFile => Path.Combine(AppDataFolder, "autostart.flag");
-
-        /// <summary>Gets a value determining if this computer is currently running Windows 8.</summary>
-        public static bool IsWindows8 => Environment.OSVersion.Version.Major.Equals(6) && Environment.OSVersion.Version.Minor.Equals(2);
 
         #endregion
         #region Entry Point
@@ -143,14 +98,6 @@ namespace SpeedTest
         }
         #endregion
         #region External Methods
-        // ReSharper disable once StringLiteralTypo
-        [DllImport("dwmapi.dll")]
-        public static extern void DwmExtendFrameIntoClientArea(IntPtr hWnd, ref Margins pMargins);
-
-        // ReSharper disable once StringLiteralTypo
-        [DllImport("dwmapi.dll")]
-        public static extern void DwmIsCompositionEnabled(ref bool pfEnabled);
-
         [DllImport("user32.dll", CharSet = CharSet.Auto)]
         public static extern IntPtr SendMessage(IntPtr hWnd, int msg, int wParam, int lParam);
 
@@ -195,13 +142,6 @@ namespace SpeedTest
                 default:
                     return time.ToShortDateString() + " " + time.ToShortTimeString();
             }
-        }
-
-        /// <summary>Extends the window frame into the client area.</summary>
-        public static void ExtendFrame(IntPtr handle, System.Drawing.Printing.Margins margins)
-        {
-            var m = new Margins(margins);
-            DwmExtendFrameIntoClientArea(handle, ref m);
         }
 
         /// <summary>Converts a Unix Timestamp value into a DateTime object.</summary>

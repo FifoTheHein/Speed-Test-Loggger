@@ -4,17 +4,27 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>Speed Test Loggger</title>
+  <link rel="icon" type="image/png" href="icon.png">
   <style>
-    body { font-family: "Segoe UI", system-ui, sans-serif; max-width: 36rem; margin: 3rem auto; padding: 0 1rem; line-height: 1.5; color: #1f2328; background: #fff; }
-    a.button { display: inline-block; padding: .6rem 1.2rem; background: #0969da; color: #fff; border-radius: 6px; text-decoration: none; font-weight: 600; }
-    small { color: #59636e; }
+    body { font-family: "Segoe UI", system-ui, sans-serif; max-width: 44rem; margin: 3rem auto; padding: 0 1rem; line-height: 1.5; color: #1b1b1b; background: #fff; }
+    header { display: flex; align-items: center; gap: 1rem; }
+    header img { width: 56px; height: 56px; }
+    h1 { margin: 0; font-size: 1.75rem; font-weight: 600; }
+    a.button { display: inline-block; padding: .6rem 1.2rem; background: #0067c0; color: #fff; border-radius: 6px; text-decoration: none; font-weight: 600; }
+    a.button:hover { background: #003e92; }
+    .shot { width: 100%; height: auto; border: 1px solid #e5e5e5; border-radius: 8px; margin: 1.5rem 0 .5rem; }
+    small { color: #606060; }
   </style>
 </head>
 <body>
-  <h1>Speed Test Loggger for Windows</h1>
+  <header>
+    <img src="icon.png" alt="">
+    <h1>Speed Test Loggger for Windows</h1>
+  </header>
   <p>Logs your download speed and internet outages over time.</p>
   <p><a class="button" href="Logger_Setup.exe">Download installer</a></p>
   <p>Run <code>Logger_Setup.exe</code>. It installs .NET Framework 4.8 if needed, then installs the app. The app checks for updates each time it starts.</p>
+  <img class="shot" src="https://raw.githubusercontent.com/FifoTheHein/Speed-Test-Loggger/master/docs/images/screenshot-main.png" alt="The main window, with a graph of download speed over time and the list of test results">
   <p><small>Upgrading from version 1.3 or earlier? Uninstall "Speed Test Loggger" from Settings &rarr; Apps first. Your log is kept.</small></p>
   <p><small><a href="https://github.com/FifoTheHein/Speed-Test-Loggger">Source on GitHub</a></small></p>
 </body>
