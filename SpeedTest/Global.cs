@@ -101,6 +101,12 @@ namespace SpeedTest
             }
         }
 
+        /// <summary>Gets the folder that holds the connection log and the auto-start flag.</summary>
+        public static string AppDataFolder => Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData), "SpeedTest");
+
+        /// <summary>Gets the file the Windows Startup script creates, so the app knows to start logging. A ClickOnce shortcut can't pass /start.</summary>
+        public static string AutoStartFlagFile => Path.Combine(AppDataFolder, "autostart.flag");
+
         /// <summary>Gets a value determining if this computer is currently running Windows 8.</summary>
         public static bool IsWindows8 => Environment.OSVersion.Version.Major.Equals(6) && Environment.OSVersion.Version.Minor.Equals(2);
 
@@ -110,8 +116,8 @@ namespace SpeedTest
         [STAThread]
         static void Main(string[] args)
         {
-            // Local variables
-            bool startLogging = args.Length > 0;
+            // Start logging straight away when started with /start, or from the Windows Startup folder
+            bool startLogging = Array.Exists(args, a => a.Equals("/start", StringComparison.OrdinalIgnoreCase)) || ConsumeAutoStartFlag();
 
             // Enable visual styles for the application
             Application.EnableVisualStyles();
@@ -282,6 +288,31 @@ namespace SpeedTest
             catch
             {
                 return null;
+            }
+        }
+
+        /// <summary>Converts the specified text into an absolute http or https Uri. Returns false if it isn't one.</summary>
+        public static bool TryGetWebUri(string text, out Uri uri)
+        {
+            return Uri.TryCreate((text ?? string.Empty).Trim(), UriKind.Absolute, out uri) && (uri.Scheme == Uri.UriSchemeHttp || uri.Scheme == Uri.UriSchemeHttps);
+        }
+
+        /// <summary>Deletes the auto-start flag file, and returns true if the Startup script created it in the last few minutes.</summary>
+        private static bool ConsumeAutoStartFlag()
+        {
+            try
+            {
+                if (!File.Exists(AutoStartFlagFile)) return false;
+
+                // Ignore a flag left over from a start that never reached the app
+                bool recent = DateTime.Now - File.GetLastWriteTime(AutoStartFlagFile) < TimeSpan.FromMinutes(10);
+                File.Delete(AutoStartFlagFile);
+
+                return recent;
+            }
+            catch
+            {
+                return false;
             }
         }
 

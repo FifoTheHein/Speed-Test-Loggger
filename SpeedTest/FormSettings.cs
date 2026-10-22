@@ -50,6 +50,13 @@ namespace SpeedTest
         /// <summary>Occurs before the Form is closed.</summary>
         protected override void OnFormClosing(FormClosingEventArgs e)
         {
+            // Only OK applies the changes; Cancel, Esc and the close button discard them
+            if (DialogResult != DialogResult.OK)
+            {
+                base.OnFormClosing(e);
+                return;
+            }
+
             // Update configuration settings
             Settings.Default.AutoDownload = RadioAutoDownload.Checked;
             Settings.Default.DownloadURL = TextDownloadURL.Text;
@@ -103,7 +110,28 @@ namespace SpeedTest
         /// <summary>Occurs when the OK button is clicked.</summary>
         private void ButtonOK_Click(object sender, EventArgs e)
         {
+            // Custom URLs must be full http or https addresses, or the next test would fail
+            if (RadioCustomDownload.Checked && !Global.TryGetWebUri(TextDownloadURL.Text, out _))
+            {
+                ShowInvalidUrl(TextDownloadURL, "download URL");
+                return;
+            }
+
+            if (RadioCustomIPDetect.Checked && !Global.TryGetWebUri(TextIPDetectURL.Text, out _))
+            {
+                ShowInvalidUrl(TextIPDetectURL, "IP lookup URL");
+                return;
+            }
+
             DialogResult = DialogResult.OK;
+        }
+
+        /// <summary>Tells the user the specified URL box doesn't hold a valid address, and selects it.</summary>
+        private void ShowInvalidUrl(TextBox textBox, string name)
+        {
+            MessageBox.Show(this, "The custom " + name + " must be a full web address, starting with http:// or https://.", Text, MessageBoxButtons.OK, MessageBoxIcon.Warning);
+            textBox.Focus();
+            textBox.SelectAll();
         }
 
         /// <summary>Occurs when the Open Log button is clicked.</summary>
