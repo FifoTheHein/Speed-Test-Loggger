@@ -111,7 +111,6 @@
             this.ComboCheckConnection.Name = "ComboCheckConnection";
             this.ComboCheckConnection.Size = new System.Drawing.Size(82, 21);
             this.ComboCheckConnection.TabIndex = 15;
-            this.ComboCheckConnection.SelectedIndexChanged += new System.EventHandler(this.ComboCheckConnection_SelectedIndexChanged);
             // 
             // LabelCheckConnection
             // 

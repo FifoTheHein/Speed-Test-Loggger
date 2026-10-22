@@ -2,11 +2,9 @@
 // Imported namespaces
 using System;
 using System.Collections.Generic;
-using System.Drawing.Printing;
 using System.Globalization;
 using System.IO;
 using System.Runtime.InteropServices;
-using System.Text;
 using System.Windows.Forms;
 using SpeedTest.Properties;
 #endregion
@@ -46,6 +44,9 @@ namespace SpeedTest
         // Global variables
         private static FormMain _gFormMain;
         private static List<ListViewItem> _gConnectionLog;
+
+        // The start of Unix time, in UTC
+        private static readonly DateTime UnixEpoch = new DateTime(1970, 1, 1, 0, 0, 0, DateTimeKind.Utc);
 
         // Connection log load and save state
         private static bool _gLogLoadFailed;
@@ -100,6 +101,23 @@ namespace SpeedTest
             Application.EnableVisualStyles();
             Application.SetCompatibleTextRenderingDefault(false);
 
+            // Settings are stored per version, so bring them across from the previous version on the first run after an update.
+            // This must happen before FormMain is created, because its constructor reads settings.
+            if (Settings.Default.UpgradeRequired)
+            {
+                try
+                {
+                    Settings.Default.Upgrade();
+                }
+                catch
+                {
+                    // A damaged settings file from the previous version: keep the defaults
+                }
+
+                Settings.Default.UpgradeRequired = false;
+                Settings.Default.Save();
+            }
+
             // Initialize global variables
             _gFormMain = new FormMain(startLogging);
             _gConnectionLog = new List<ListViewItem>();
@@ -110,7 +128,9 @@ namespace SpeedTest
             if (string.IsNullOrEmpty(Settings.Default.IPDetectURL))
                 Settings.Default.IPDetectURL = "http://icanhazip.com";
             if (string.IsNullOrEmpty(Settings.Default.LogFile)) Settings.Default.LogFile = Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData) + Path.DirectorySeparatorChar + "SpeedTest" + Path.DirectorySeparatorChar + "SpeedTestLog2.csv";
-            if (Settings.Default.LogFile.ToLower().StartsWith(Application.StartupPath.ToLower())) Settings.Default.LogFile = Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData) + Path.DirectorySeparatorChar + "SpeedTest" + Path.DirectorySeparatorChar + "ConnectionLog2.csv";
+            // A log inside the app's own folder would be lost when ClickOnce installs an update, so move it to AppData.
+            // (Compare with a trailing separator, so C:\App doesn't match C:\Apple. The file name is kept as it was, because logs already moved use it.)
+            if (Settings.Default.LogFile.StartsWith(Application.StartupPath.TrimEnd(Path.DirectorySeparatorChar) + Path.DirectorySeparatorChar, StringComparison.OrdinalIgnoreCase)) Settings.Default.LogFile = Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData) + Path.DirectorySeparatorChar + "SpeedTest" + Path.DirectorySeparatorChar + "ConnectionLog2.csv";
 
             // Create SpeedTest folder
             if (!Directory.Exists(Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData) + Path.DirectorySeparatorChar + "SpeedTest")) Directory.CreateDirectory(Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData) + Path.DirectorySeparatorChar + "SpeedTest");
@@ -189,8 +209,7 @@ namespace SpeedTest
         {
             if (time == 0) return DateTime.Now;
 
-            var epoch = new DateTime(1970, 1, 1, 0, 0, 0, 0);
-            return epoch.AddSeconds(Convert.ToDouble(time)).ToLocalTime();
+            return UnixEpoch.AddSeconds(Convert.ToDouble(time)).ToLocalTime();
         }
 
         /// <summary>Loads the connection log from the specified CSV file.</summary>
@@ -401,7 +420,8 @@ namespace SpeedTest
         /// <summary>Converts a DateTime object into a Unix Timestamp value.</summary>
         public static long ToUnixTime(DateTime time)
         {
-            return Convert.ToInt64((time - new DateTime(1970, 1, 1, 0, 0, 0, 0).ToLocalTime()).TotalSeconds);
+            // Convert through UTC. Subtracting a local 1970 epoch used 1970's UTC offset, which is wrong for dates in daylight saving time.
+            return Convert.ToInt64((time.ToUniversalTime() - UnixEpoch).TotalSeconds);
         }
         #endregion
     }

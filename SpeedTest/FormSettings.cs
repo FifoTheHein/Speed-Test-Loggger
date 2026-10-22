@@ -140,10 +140,5 @@ namespace SpeedTest
             if (File.Exists(TextLogFile.Text)) Process.Start(TextLogFile.Text);
         }
         #endregion
-
-        private void ComboCheckConnection_SelectedIndexChanged(object sender, EventArgs e)
-        {
-
-        }
     }
 }
