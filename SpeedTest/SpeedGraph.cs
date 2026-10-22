@@ -59,6 +59,9 @@ namespace SpeedTest
             int speed = 0;
             int time = 0;
 
+            // Scale the graph to the visible log entries before drawing the axis or any points
+            UpdateMaxSpeeds();
+
             // Adjust Graphics object properties
             e.Graphics.SmoothingMode = SmoothingMode.HighQuality;
             e.Graphics.TextRenderingHint = TextRenderingHint.ClearTypeGridFit;
@@ -309,30 +312,11 @@ namespace SpeedTest
                         {
                             // Local variables
                             long itemTime = Global.ToUnixTime((DateTime)Global.ConnectionLog[i].Tag);
-                            long elapsedTime = 0;
+                            long elapsedTime = GetTimelineStart();
                             long itemSpeed = Global.ToInt64(Global.ConnectionLog[i].SubItems[6].Text);
 
                             // Bits instead of bytes
                             if (!Settings.Default.SpeedUnits) itemSpeed *= 8;
-
-                            switch (Settings.Default.TimeScale)
-                            {
-                                case 0: // 10 Minutes
-                                    elapsedTime = Global.ToUnixTime(DateTime.Now.Subtract(new TimeSpan(0, 0, 10, 0)));
-                                    break;
-                                case 1: // 30 Minutes
-                                    elapsedTime = Global.ToUnixTime(DateTime.Now.Subtract(new TimeSpan(0, 0, 30, 0)));
-                                    break;
-                                case 2: // 1 Hour
-                                    elapsedTime = Global.ToUnixTime(DateTime.Now.Subtract(new TimeSpan(0, 1, 0, 0)));
-                                    break;
-                                case 3: // 12 Hours
-                                    elapsedTime = Global.ToUnixTime(DateTime.Now.Subtract(new TimeSpan(0, 12, 0, 0)));
-                                    break;
-                                case 4: // 24 Hours
-                                    elapsedTime = Global.ToUnixTime(DateTime.Now.Subtract(new TimeSpan(0, 24, 0, 0)));
-                                    break;
-                            }
 
                             // Local variables
                             long now = Global.ToUnixTime(DateTime.Now);
@@ -342,16 +326,6 @@ namespace SpeedTest
                             if (complete > 0)
                             {
                                 float x = Global.Percent(complete, total, Width - 61) + 40;
-
-                                // Update private variables
-                                if (Settings.Default.SpeedUnits)
-                                {
-                                    if (itemSpeed > p_MaxBytes) p_MaxBytes = itemSpeed;
-                                }
-                                else
-                                {
-                                    if (itemSpeed > p_MaxBits) p_MaxBits = itemSpeed;
-                                }
 
                                 if (Settings.Default.SpeedUnits) e.Graphics.DrawLine(Pens.Green, lastPoint.X, lastPoint.Y, x, (Height - 61) - Global.Percent(itemSpeed, p_MaxBytes, Height - 80));
                                 else e.Graphics.DrawLine(Pens.Green, lastPoint.X, lastPoint.Y, x, (Height - 61) - Global.Percent(itemSpeed, p_MaxBits, Height - 80));
@@ -487,6 +461,49 @@ namespace SpeedTest
         }
         #endregion
         #region Private Methods
+        /// <summary>Gets the Unix time at the left edge of the graph for the selected time scale.</summary>
+        private static long GetTimelineStart()
+        {
+            switch (Settings.Default.TimeScale)
+            {
+                case 0: // 10 Minutes
+                    return Global.ToUnixTime(DateTime.Now.Subtract(new TimeSpan(0, 0, 10, 0)));
+                case 1: // 30 Minutes
+                    return Global.ToUnixTime(DateTime.Now.Subtract(new TimeSpan(0, 0, 30, 0)));
+                case 2: // 1 Hour
+                    return Global.ToUnixTime(DateTime.Now.Subtract(new TimeSpan(0, 1, 0, 0)));
+                case 3: // 12 Hours
+                    return Global.ToUnixTime(DateTime.Now.Subtract(new TimeSpan(0, 12, 0, 0)));
+                case 4: // 24 Hours
+                    return Global.ToUnixTime(DateTime.Now.Subtract(new TimeSpan(0, 24, 0, 0)));
+                default:
+                    return 0;
+            }
+        }
+
+        /// <summary>Sets the maximum speeds to the fastest log entry on the graph, so every point and the axis share one scale.</summary>
+        private void UpdateMaxSpeeds()
+        {
+            // Local variables
+            long maxBytes = 0;
+            long timelineStart = GetTimelineStart();
+
+            if (Global.ConnectionLog != null)
+            {
+                for (int i = 0; i < Global.ConnectionLog.Count; i++)
+                {
+                    // The last entry is drawn at the right edge even when it is older than the timeline
+                    bool visible = i == Global.ConnectionLog.Count - 1 || Global.ToUnixTime((DateTime)Global.ConnectionLog[i].Tag) > timelineStart;
+
+                    if (visible) maxBytes = Math.Max(maxBytes, Global.ToInt64(Global.ConnectionLog[i].SubItems[6].Text));
+                }
+            }
+
+            // Never scale below 2 MB (or 2 mb)
+            p_MaxBytes = Math.Max(1024000 * 2, maxBytes);
+            p_MaxBits = Math.Max(1024000 * 2, maxBytes * 8);
+        }
+
         /// <summary>Gets the connection change logged in the specified row: "Online", "Offline", "IP Changed" or "-".</summary>
         private static string GetConnectionChange(ListViewItem item)
         {
