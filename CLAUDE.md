@@ -76,6 +76,9 @@ WinForms app on .NET Framework 4.8 (C#) that runs download speed tests on a sche
   - When neither font exists, `Theme.Icon` returns null. Callers fall back to the original bitmaps in `ImageListMain` and `ImageListLog`, so keep those.
 - **Toolbar, status bar and tray menu:** these are `ToolStrip`, `StatusStrip` and `ContextMenuStrip` with `FlatRenderer`, not the old `ToolBar`, `StatusBar` and `ContextMenu`.
   - The toolbar toggles use `.Checked`.
+  - Don't right-align toolbar items. In .NET Framework that hides them from UI Automation and screen readers. Settings, Help and About are left-aligned after `ToolBarSpacer`, a label that `ToolStripMain_Layout` widens to fill the gap.
+  - Overflow is off (`CanOverflow = false`), so a button can never move into a hidden menu.
+  - To check accessibility, list the toolbar's UI Automation children: every button should appear, and there should be no "ToolBar Options" item.
   - The status bar uses `HorizontalStackWithOverflow`, with `StatusMain` aligned right. `Spring` with the default Table layout pushed the label onto a hidden second row.
 - **Graph (`SpeedGraph.OnPaint`):**
   - **Layout:** a summary row (last, average and fastest speeds, and outages), a plot with round axis steps (`NiceStep`), and a key.
