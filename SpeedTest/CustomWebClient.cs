@@ -76,7 +76,8 @@ namespace SpeedTest
                     // Update private variables
                     p_AllBytesDownloaded += bytesChange;
                     p_LastBytesDownloaded = e.BytesReceived;
-                    p_CurrentSpeed = Convert.ToInt64(p_AllBytesDownloaded / p_Stopwatch.Elapsed.TotalSeconds);
+                    // The Stopwatch only runs once the speed test starts, so skip progress from the IP lookup
+                    if (p_Stopwatch.Elapsed.TotalSeconds > 0) p_CurrentSpeed = Convert.ToInt64(p_AllBytesDownloaded / p_Stopwatch.Elapsed.TotalSeconds);
                 }
             }
             catch { }
