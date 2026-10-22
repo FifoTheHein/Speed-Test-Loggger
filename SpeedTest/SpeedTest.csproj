@@ -55,7 +55,7 @@
     <ApplicationManifest>app.manifest</ApplicationManifest>
   </PropertyGroup>
   <PropertyGroup>
-    <ManifestCertificateThumbprint>685330142A922244537D150AC2C1E9829D4D9116</ManifestCertificateThumbprint>
+    <ManifestCertificateThumbprint>CB54C1B0BAAB7DF85D96396E9600ABDB8A2E8CB9</ManifestCertificateThumbprint>
   </PropertyGroup>
   <PropertyGroup>
     <ManifestKeyFile>Speedtest_TemporaryKey.pfx</ManifestKeyFile>
