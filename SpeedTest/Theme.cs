@@ -60,6 +60,18 @@ namespace SpeedTest
         /// <summary>Gets a value indicating whether line icons can be drawn on this PC.</summary>
         public static bool HasIcons => p_IconFont != null;
 
+        /// <summary>Converts a size designed at 100% display scaling (96 DPI) into pixels at the specified control's current DPI.</summary>
+        public static int Scale(Control control, int pixels)
+        {
+            return (int)Math.Round(pixels * control.DeviceDpi / 96f);
+        }
+
+        /// <summary>Converts a size designed at 100% display scaling (96 DPI) into pixels at the specified control's current DPI.</summary>
+        public static float Scale(Control control, float pixels)
+        {
+            return pixels * control.DeviceDpi / 96f;
+        }
+
         /// <summary>Draws the specified icon glyph as a square bitmap of the specified size and colour, or returns null if there's no icon font.</summary>
         public static Bitmap Icon(char glyph, int size, Color color)
         {
@@ -166,13 +178,13 @@ namespace SpeedTest
             else if (on) fill = e.Item.Selected ? Theme.AccentLightHover : Theme.AccentLight;
             else if (e.Item.Selected && e.Item.Enabled) fill = Theme.Hover;
 
-            if (fill.HasValue) FillRounded(e.Graphics, new RectangleF(1, 2, e.Item.Width - 2, e.Item.Height - 4), fill.Value);
+            if (fill.HasValue) FillRounded(e.Graphics, new RectangleF(1, 2, e.Item.Width - 2, e.Item.Height - 4), fill.Value, Theme.Scale(e.ToolStrip, 4f));
         }
 
         /// <summary>Highlights a hovered menu item.</summary>
         protected override void OnRenderMenuItemBackground(ToolStripItemRenderEventArgs e)
         {
-            if (e.Item.Selected && e.Item.Enabled) FillRounded(e.Graphics, new RectangleF(4, 1, e.Item.Width - 8, e.Item.Height - 2), Theme.Hover);
+            if (e.Item.Selected && e.Item.Enabled) FillRounded(e.Graphics, new RectangleF(4, 1, e.Item.Width - 8, e.Item.Height - 2), Theme.Hover, Theme.Scale(e.ToolStrip, 4f));
         }
 
         /// <summary>Leaves the menu's image column white instead of grey.</summary>
@@ -183,20 +195,23 @@ namespace SpeedTest
         /// <summary>Draws a separator as a short hairline.</summary>
         protected override void OnRenderSeparator(ToolStripSeparatorRenderEventArgs e)
         {
+            int inset = Theme.Scale(e.ToolStrip, 6);
+
             using (Pen pen = new Pen(Theme.Border))
             {
-                if (e.Vertical) e.Graphics.DrawLine(pen, e.Item.Width / 2, 6, e.Item.Width / 2, e.Item.Height - 6);
-                else e.Graphics.DrawLine(pen, 28, e.Item.Height / 2, e.Item.Width - 8, e.Item.Height / 2);
+                if (e.Vertical) e.Graphics.DrawLine(pen, e.Item.Width / 2, inset, e.Item.Width / 2, e.Item.Height - inset);
+                else e.Graphics.DrawLine(pen, Theme.Scale(e.ToolStrip, 28), e.Item.Height / 2, e.Item.Width - Theme.Scale(e.ToolStrip, 8), e.Item.Height / 2);
             }
         }
 
         /// <summary>Draws a menu item's check mark as an accent line icon.</summary>
         protected override void OnRenderItemCheck(ToolStripItemImageRenderEventArgs e)
         {
-            Bitmap check = Theme.Icon(Theme.GlyphCheck, 16, Theme.Accent);
+            int size = Theme.Scale(e.ToolStrip, 16);
+            Bitmap check = Theme.Icon(Theme.GlyphCheck, size, Theme.Accent);
 
             if (check == null) base.OnRenderItemCheck(e);
-            else using (check) e.Graphics.DrawImage(check, e.ImageRectangle.X + (e.ImageRectangle.Width - 16) / 2, e.ImageRectangle.Y + (e.ImageRectangle.Height - 16) / 2);
+            else using (check) e.Graphics.DrawImage(check, e.ImageRectangle.X + (e.ImageRectangle.Width - size) / 2, e.ImageRectangle.Y + (e.ImageRectangle.Height - size) / 2);
         }
 
         /// <summary>Colours item text: accent when switched on, grey when disabled or in the status bar.</summary>
@@ -213,12 +228,12 @@ namespace SpeedTest
         }
 
         /// <summary>Fills a rounded rectangle with the specified colour.</summary>
-        private static void FillRounded(Graphics g, RectangleF bounds, Color color)
+        private static void FillRounded(Graphics g, RectangleF bounds, Color color, float radius)
         {
             SmoothingMode previous = g.SmoothingMode;
             g.SmoothingMode = SmoothingMode.AntiAlias;
 
-            using (GraphicsPath path = Theme.RoundedRectangle(bounds, 4))
+            using (GraphicsPath path = Theme.RoundedRectangle(bounds, radius))
             using (SolidBrush brush = new SolidBrush(color))
             {
                 g.FillPath(brush, path);
@@ -246,7 +261,8 @@ namespace SpeedTest
 
             using (Pen pen = new Pen(Theme.Border))
             {
-                e.Graphics.DrawLine(pen, 0, 22, Width, 22);
+                int lineY = Theme.Scale(this, 22);
+                e.Graphics.DrawLine(pen, 0, lineY, Width, lineY);
             }
         }
     }
