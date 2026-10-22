@@ -110,8 +110,9 @@ namespace SpeedTest
             // Hide tray icon
             IconMain.Visible = false;
 
-            // Save the connection log
-            Global.SaveConnectionLog(Settings.Default.LogFile);
+            // Save the connection log (the status bar can't show an error any more, so tell the user directly)
+            if (!Global.SaveConnectionLog(Settings.Default.LogFile))
+                MessageBox.Show(this, "The connection log couldn't be saved: " + Global.LastSaveError, Text, MessageBoxButtons.OK, MessageBoxIcon.Warning);
 
             // Update configuration settings
             Settings.Default.ShowSuccessful = MenuShowSuccessful.Checked;
@@ -200,13 +201,7 @@ namespace SpeedTest
             item.Tag = DateTime.Now;
 
             // Add the ListViewItem to the log
-            Global.ConnectionLog.Add(item);
-
-            if (ToolBarShowStatusChanges.Pushed)
-            {
-                ListLog.Items.Insert(0, item);
-                item.EnsureVisible();
-            }
+            AddLogItem(item);
 
             // Start the Timer
             p_TimerLog = new System.Threading.Timer(new System.Threading.TimerCallback(p_TimerLog_Tick), null, 1000, 1000);
@@ -243,13 +238,7 @@ namespace SpeedTest
             item.Tag = DateTime.Now;
 
             // Add the ListViewItem to the log
-            Global.ConnectionLog.Add(item);
-
-            if (ToolBarShowStatusChanges.Pushed)
-            {
-                ListLog.Items.Insert(0, item);
-                item.EnsureVisible();
-            }
+            AddLogItem(item);
         }
 
         /// <summary>Occurs when the Test Now menu item is clicked.</summary>
@@ -497,42 +486,11 @@ namespace SpeedTest
                 item.Tag = DateTime.Now;
             }
 
-            if (item != null)
-            {
-                // Add the ListViewItem to the log
-                Global.ConnectionLog.Add(item);
-
-                switch (imageIndex)
-                {
-                    case 0: // Successful
-                        if (ToolBarShowSuccessful.Pushed)
-                        {
-                            ListLog.Items.Insert(0, item);
-                            item.EnsureVisible();
-                        }
-                        break;
-                    case 1: // Status Changed
-                        if (ToolBarShowStatusChanges.Pushed)
-                        {
-                            ListLog.Items.Insert(0, item);
-                            item.EnsureVisible();
-                        }
-                        break;
-                    case 2: // Error
-                        if (ToolBarShowErrors.Pushed)
-                        {
-                            ListLog.Items.Insert(0, item);
-                            item.EnsureVisible();
-                        }
-                        break;
-                }
-            }
+            // Add the ListViewItem to the log
+            if (item != null) AddLogItem(item);
 
             // Dispose the CustomWebClient object
             webClient.Dispose();
-
-            // Save the speed log
-            Global.SaveConnectionLog(Settings.Default.LogFile);
         }
 
         private void webClient_DownloadProgressChanged(object sender, DownloadProgressChangedEventArgs e)
@@ -646,36 +604,43 @@ namespace SpeedTest
                 item.Tag = DateTime.Now;
 
                 // Add the ListViewItem to the log
-                Global.ConnectionLog.Add(item);
-
-                switch (imageIndex)
-                {
-                    case 0: // Successful
-                        if (ToolBarShowSuccessful.Pushed)
-                        {
-                            ListLog.Items.Insert(0, item);
-                            item.EnsureVisible();
-                        }
-                        break;
-                    case 1: // Status Changed
-                        if (ToolBarShowStatusChanges.Pushed)
-                        {
-                            ListLog.Items.Insert(0, item);
-                            item.EnsureVisible();
-                        }
-                        break;
-                    case 2: // Error
-                        if (ToolBarShowErrors.Pushed)
-                        {
-                            ListLog.Items.Insert(0, item);
-                            item.EnsureVisible();
-                        }
-                        break;
-                }
+                AddLogItem(item);
 
                 // Dispose the CustomWebClient object
                 webClient.Dispose();
             }
+        }
+        #endregion
+        #region Private Methods
+        /// <summary>Adds the specified item to the connection log, shows it if its type is visible, and saves the log.</summary>
+        private void AddLogItem(ListViewItem item)
+        {
+            // Add the ListViewItem to the log
+            Global.ConnectionLog.Add(item);
+
+            bool visible;
+            switch (item.ImageIndex)
+            {
+                case 0: // Successful
+                    visible = ToolBarShowSuccessful.Pushed;
+                    break;
+                case 1: // Status Changed
+                    visible = ToolBarShowStatusChanges.Pushed;
+                    break;
+                default: // Error
+                    visible = ToolBarShowErrors.Pushed;
+                    break;
+            }
+
+            if (visible)
+            {
+                ListLog.Items.Insert(0, item);
+                item.EnsureVisible();
+            }
+
+            // Save after every row, so an outage is on disk even if the PC loses power
+            if (!Global.SaveConnectionLog(Settings.Default.LogFile))
+                StatusMain.Text = "Unable to save the log: " + Global.LastSaveError;
         }
         #endregion
         #region Public Methods
@@ -740,32 +705,7 @@ namespace SpeedTest
                 item.Tag = DateTime.Now;
 
                 // Add the ListViewItem to the log
-                Global.ConnectionLog.Add(item);
-
-                switch (imageIndex)
-                {
-                    case 0: // Successful
-                        if (ToolBarShowSuccessful.Pushed)
-                        {
-                            ListLog.Items.Insert(0, item);
-                            item.EnsureVisible();
-                        }
-                        break;
-                    case 1: // Status Changed
-                        if (ToolBarShowStatusChanges.Pushed)
-                        {
-                            ListLog.Items.Insert(0, item);
-                            item.EnsureVisible();
-                        }
-                        break;
-                    case 2: // Error
-                        if (ToolBarShowErrors.Pushed)
-                        {
-                            ListLog.Items.Insert(0, item);
-                            item.EnsureVisible();
-                        }
-                        break;
-                }
+                AddLogItem(item);
             }
         }
 

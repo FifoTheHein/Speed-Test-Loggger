@@ -27,6 +27,10 @@ WinForms app on .NET Framework 4.8 (C#) that runs download speed tests on a sche
   - Message holds "-", "IP Changed", "Online", "Offline" or "Invalid URL".
   - Older rows in existing logs may use the old values, such as Status "Online".
 - Never write an empty column: use "n/a". Don't split lines with `RemoveEmptyEntries`. An empty column once made the loader silently drop every row after it, and the next save erased them.
+- Never write culture-formatted numbers to the CSV. On a PC set to South Africa, "512,34 kb/s" adds a column. `SaveConnectionLog` writes Speed(S) in the invariant culture with no grouping, and passes text columns through `CsvField`.
+- The loader reads the first three columns from the front and the last five from the back. That recovers rows that older versions wrote with a comma in Speed(S). It rebuilds the speed text from Speed(B) and skips malformed rows instead of stopping.
+- Saves go to a `.tmp` file and then `File.Replace`, never straight over the log. If the log couldn't be read at startup, the first save reads it again first. If rows were skipped, the first save keeps a dated `.bak` copy.
+- In `FormMain`, add rows with `AddLogItem`. It shows the row, saves the log, and puts save errors in the status bar. Don't show dialogs from the logging loop.
 - Older rows, in the original a9t9 format, have the two swapped: Message holds the result ("OK", "Error", "Offline") and Status holds the change. Anything that reads the change, like the graph's offline shading, must handle both. Use `SpeedGraph.GetConnectionChange` and `IsLoggerEvent`.
 
 ## Building and testing
