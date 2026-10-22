@@ -1,7 +1,7 @@
 name: Publish release
 
 # Builds the ClickOnce app for a release tag, deploys it to GitHub Pages (the
-# install and update URL in SpeedTest.csproj) and attaches setup.exe to the release.
+# install and update URL in SpeedTest.csproj) and attaches the installer (Logger_Setup.exe) to the release.
 on:
   release:
     types: [published]
@@ -65,18 +65,20 @@ jobs:
           $pub = 'SpeedTest\bin\Release\app.publish'
           $folder = 'SpeedTestLoggger_' + $env:VERSION.Replace('.', '_')
           New-Item -ItemType Directory -Force '_site\Application Files' | Out-Null
-          Copy-Item "$pub\setup.exe", "$pub\SpeedTestLoggger.application", 'deploy\index.html' _site
+          # MSBuild always names the ClickOnce bootstrapper setup.exe
+          Copy-Item "$pub\setup.exe" '_site\Logger_Setup.exe'
+          Copy-Item "$pub\SpeedTestLoggger.application", 'deploy\index.html' _site
           Copy-Item "$pub\Application Files\$folder" '_site\Application Files' -Recurse
 
       - uses: actions/upload-pages-artifact@v5
         with:
           path: _site
 
-      - name: Attach setup.exe to the release
+      - name: Attach the installer to the release
         shell: pwsh
         env:
           GH_TOKEN: ${{ github.token }}
-        run: gh release upload $env:TAG _site\setup.exe --clobber
+        run: gh release upload $env:TAG _site\Logger_Setup.exe --clobber
 
   deploy:
     needs: build

@@ -4,7 +4,7 @@ A Windows app that tests your download speed on a schedule, graphs it over time 
 
 ## Install
 
-Go to **https://fifothehein.github.io/Speed-Test-Loggger/** and click **Download installer**. You can also download `setup.exe` from the [latest release](https://github.com/FifoTheHein/Speed-Test-Loggger/releases/latest).
+Go to **https://fifothehein.github.io/Speed-Test-Loggger/** and click **Download installer**. You can also download `Logger_Setup.exe` from the [latest release](https://github.com/FifoTheHein/Speed-Test-Loggger/releases/latest).
 
 - The installer adds .NET Framework 4.8 if it's missing.
 - The app checks for updates each time it starts and installs new versions automatically.
@@ -29,7 +29,7 @@ Release builds sign the ClickOnce manifests with the certificate whose thumbprin
 
 1. Bump the version in a PR: `ApplicationVersion` in `SpeedTest/SpeedTest.csproj`, `AssemblyVersion` and `AssemblyFileVersion` in `SpeedTest/Properties/AssemblyInfo.cs`, and the About box text in `SpeedTest/FormMain.cs`.
 2. Once it's merged, publish a GitHub release tagged with the same version, for example `v1.4.0`.
-3. The **Publish release** workflow builds and signs the app and deploys it to GitHub Pages. It also attaches `setup.exe` to the release. Installed copies pick up the update the next time they start.
+3. The **Publish release** workflow builds and signs the app and deploys it to GitHub Pages. It also attaches the installer, `Logger_Setup.exe`, to the release. Installed copies pick up the update the next time they start.
 
 The workflow signs with the certificate in the `SIGNING_PFX_BASE64` and `SIGNING_PFX_PASSWORD` repository secrets. It fails if the tag doesn't match `ApplicationVersion`.
 
