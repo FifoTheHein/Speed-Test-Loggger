@@ -52,7 +52,7 @@ jobs:
           $password = ConvertTo-SecureString $env:PFX_PASSWORD -AsPlainText -Force
           Import-PfxCertificate -FilePath $pfx -CertStoreLocation Cert:\CurrentUser\My -Password $password | Out-Null
 
-      - uses: microsoft/setup-msbuild@v2
+      - uses: microsoft/setup-msbuild@v3
 
       - name: Publish ClickOnce
         shell: pwsh
