@@ -57,7 +57,7 @@ ClickOnce manifests are signed with a self-signed certificate:
 1. **Bump the version on a branch with a PR.** It's in four places:
    - `ApplicationVersion` in `SpeedTest/SpeedTest.csproj`, for example `1.5.0.%2a`.
    - `AssemblyVersion` and `AssemblyFileVersion` in `SpeedTest/Properties/AssemblyInfo.cs`, for example `1.5.0.0`.
-   - The About box in `SpeedTest/FormMain.cs`, in the form `V1.05` for 1.5.0.
+   - The About box in `SpeedTest/FormMain.cs`, in the form `V1.05` for 1.5.0, or `V1.04.1` for a patch release like 1.4.1.
 2. **Check locally before the PR.** Run the workflow's tag check, then publish:
    ```powershell
    & $msb SpeedTest\SpeedTest.csproj /t:Clean,Publish /p:Configuration=Release /p:ApplicationVersion=1.5.0.0 /p:MinimumRequiredVersion=1.5.0.0 /p:UpdateRequired=true /v:minimal /nologo
