@@ -33,6 +33,8 @@ WinForms app on .NET Framework 4.8 (C#) that runs download speed tests on a sche
   - Versions up to 1.4.1 reloaded and re-saved the log on every run, so on PCs with a comma decimal point, history from before then is already scrambled (speed 0, columns shifted). Don't promise users it's repaired.
 - Saves go to a `.tmp` file and then `File.Replace`, never straight over the log. If the log couldn't be read at startup, the first save reads it again first. If rows were skipped, the first save keeps a dated `.bak` copy.
 - In `FormMain`, add rows with `AddLogItem`. It shows the row, saves the log, and puts save errors in the status bar. Don't show dialogs from the logging loop.
+- **The log is in time order, and code relies on that.** The graph, `UpdateLog` and the auto-download size check read it newest first and stop at the first row that's too old. Never scan the whole log on a timer: with a year of rows, the graph took 1.5 s per repaint until it stopped early (now 4 ms).
+- **Time(U) is real Unix time.** `ToUnixTime` and `FromUnixTime` convert through UTC. The old code used a local 1970 epoch, which was wrong in daylight saving time. That made no difference in South Africa, which has no daylight saving.
 - Older rows, in the original a9t9 format, have the two swapped: Message holds the result ("OK", "Error", "Offline") and Status holds the change. Anything that reads the change, like the graph's offline shading, must handle both. Use `SpeedGraph.GetConnectionChange` and `IsLoggerEvent`.
 
 ## Speed tests
@@ -51,6 +53,9 @@ WinForms app on .NET Framework 4.8 (C#) that runs download speed tests on a sche
   - Closing a `FormMain` runs `OnFormClosing`, which saves settings and calls `UpdateAutoStart`. Point `LogFile` at a scratch file first.
 
 ## Settings and startup
+
+- **Settings across updates:** user settings are stored per version. `Main` calls `Settings.Default.Upgrade()` once when `UpgradeRequired` is true, which it is by default in each new version, before `FormMain` is created. A new setting needs adding in three places: `Settings.settings`, `Settings.Designer.cs` and `App.config`.
+- **Testing settings by reflection:** in a PowerShell test host, settings are saved under the PowerShell exe's own config, not the app's, so tests can't touch the user's real settings. They also can't exercise `Upgrade()`.
 
 - **Settings dialog:** only OK applies changes. Cancel, Esc and the close button discard them. OK checks custom URLs with `Global.TryGetWebUri`, which requires an absolute http or https address. Code that uses a URL setting checks it again, because older settings may predate the check.
 - **Auto-start:** `UpdateAutoStart` writes `Speed Test Loggger.cmd` to the Windows Startup folder.

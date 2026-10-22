@@ -1,6 +1,7 @@
 ﻿#region Using
 // Imported namespaces
 using System;
+using System.Collections.Generic;
 using System.ComponentModel;
 using System.Diagnostics;
 using System.Drawing;
@@ -11,8 +12,6 @@ using System.Net;
 using System.Text.RegularExpressions;
 using System.Windows.Forms;
 using SpeedTest.Properties;
-using Microsoft.Win32;
-using System.Security.Policy;
 #endregion
 namespace SpeedTest
 {
@@ -517,21 +516,7 @@ namespace SpeedTest
             // Add the ListViewItem to the log
             Global.ConnectionLog.Add(item);
 
-            bool visible;
-            switch (item.ImageIndex)
-            {
-                case 0: // Successful
-                    visible = ToolBarShowSuccessful.Pushed;
-                    break;
-                case 1: // Status Changed
-                    visible = ToolBarShowStatusChanges.Pushed;
-                    break;
-                default: // Error
-                    visible = ToolBarShowErrors.Pushed;
-                    break;
-            }
-
-            if (visible)
+            if (IsShown(item))
             {
                 ListLog.Items.Insert(0, item);
                 item.EnsureVisible();
@@ -540,6 +525,20 @@ namespace SpeedTest
             // Save after every row, so an outage is on disk even if the PC loses power
             if (!Global.SaveConnectionLog(Settings.Default.LogFile))
                 StatusMain.Text = "Unable to save the log: " + Global.LastSaveError;
+        }
+
+        /// <summary>Gets a value indicating whether rows of the specified item's type are shown in the list (the Show buttons on the toolbar).</summary>
+        private bool IsShown(ListViewItem item)
+        {
+            switch (item.ImageIndex)
+            {
+                case 0: // Successful
+                    return ToolBarShowSuccessful.Pushed;
+                case 1: // Status Changed
+                    return ToolBarShowStatusChanges.Pushed;
+                default: // Error
+                    return ToolBarShowErrors.Pushed;
+            }
         }
 
         /// <summary>Logs the result of a test, marking a change of IP address or of online/offline status in the Message column.</summary>
@@ -607,16 +606,19 @@ namespace SpeedTest
             return null;
         }
 
-        /// <summary>Gets the URL of the file to time: the custom URL, or a file sized to the fastest speed logged so far.</summary>
+        /// <summary>Gets the URL of the file to time: the custom URL, or a file sized to the fastest speed logged in the last 24 hours.</summary>
         private static bool TryGetDownloadUri(out Uri uri)
         {
             if (!Settings.Default.AutoDownload) return Global.TryGetWebUri(Settings.Default.DownloadURL, out uri);
 
+            // Only recent speeds count, so one fast result long ago doesn't pick the large file for ever,
+            // and the scan stays short however long the log grows
             long maximumSpeed = 0;
+            DateTime since = DateTime.Now.AddHours(-24);
 
-            foreach (ListViewItem item in Global.ConnectionLog)
+            for (int i = Global.ConnectionLog.Count - 1; i >= 0 && (DateTime)Global.ConnectionLog[i].Tag > since; i--)
             {
-                long speed = Global.ToInt64(item.SubItems[6].Text);
+                long speed = Global.ToInt64(Global.ConnectionLog[i].SubItems[6].Text);
 
                 if (speed > maximumSpeed) maximumSpeed = speed;
             }
@@ -746,44 +748,25 @@ namespace SpeedTest
         /// <summary>Updates the ListView when the user shows or hides log messages.</summary>
         public void UpdateLog()
         {
-            // Clear the ListView
-            ListLog.Items.Clear();
+            // The list shows this session's rows, newest at the top. The log is in time order, so read it
+            // newest first and stop at the first row from before startup.
+            List<ListViewItem> items = new List<ListViewItem>();
 
             if (Global.ConnectionLog != null)
             {
-                foreach (ListViewItem item in Global.ConnectionLog)
+                for (int i = Global.ConnectionLog.Count - 1; i >= 0 && (DateTime)Global.ConnectionLog[i].Tag > p_StartupTime; i--)
                 {
-                    DateTime time = (DateTime)item.Tag;
-
-                    if (time > p_StartupTime)
-                    {
-                        switch (item.ImageIndex)
-                        {
-                            case 0: // Successful
-                                if (ToolBarShowSuccessful.Pushed)
-                                {
-                                    ListLog.Items.Insert(0, item);
-                                    item.EnsureVisible();
-                                }
-                                break;
-                            case 1: // Status Changed
-                                if (ToolBarShowStatusChanges.Pushed)
-                                {
-                                    ListLog.Items.Insert(0, item);
-                                    item.EnsureVisible();
-                                }
-                                break;
-                            case 2: // Error
-                                if (ToolBarShowErrors.Pushed)
-                                {
-                                    ListLog.Items.Insert(0, item);
-                                    item.EnsureVisible();
-                                }
-                                break;
-                        }
-                    }
+                    if (IsShown(Global.ConnectionLog[i])) items.Add(Global.ConnectionLog[i]);
                 }
             }
+
+            // Refill the ListView in one go instead of redrawing it for every row
+            ListLog.BeginUpdate();
+            ListLog.Items.Clear();
+            ListLog.Items.AddRange(items.ToArray());
+            ListLog.EndUpdate();
+
+            if (items.Count > 0) items[0].EnsureVisible();
         }
         #endregion
     }
