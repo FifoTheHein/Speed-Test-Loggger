@@ -98,7 +98,7 @@ namespace SpeedTest
                 item.SubItems.Add(p_CurrentIP);                                              //IP
                 item.SubItems.Add("-");                                                 //Message
                 item.SubItems.Add("Logger Stopped");                                    //Status
-                item.SubItems.Add("");                                                  //Filename
+                item.SubItems.Add("n/a");                                               //Filename
                 item.SubItems.Add("0");                                                 //Speed
                 item.ImageIndex = 0;
                 item.Tag = DateTime.Now;
@@ -237,7 +237,7 @@ namespace SpeedTest
             item.SubItems.Add(p_CurrentIP);                                             //IP
             item.SubItems.Add("-");                                                //Message
             item.SubItems.Add("Logger Stopped");                                   //Status
-            item.SubItems.Add("");                                                 //Filename
+            item.SubItems.Add("n/a");                                              //Filename
             item.SubItems.Add("0");                                                //Speed
             item.ImageIndex = 1;
             item.Tag = DateTime.Now;

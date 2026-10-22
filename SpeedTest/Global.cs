@@ -266,9 +266,10 @@ namespace SpeedTest
                                 continue;
                             }
 
-                            var s = line.Split(new[] { ',' }, StringSplitOptions.RemoveEmptyEntries);
+                            // Keep empty entries so columns stay aligned (e.g. an empty Filename)
+                            var s = line.Split(',');
 
-                            if (s.Length > 5)
+                            if (s.Length > 8)
                             {
                                 var time = FromUnixTime(ToInt64(s[1]));
 
