@@ -310,7 +310,7 @@ namespace SpeedTest
         private void MenuAbout_Click(object sender, EventArgs e)
         {
             // Display an About dialog to the user
-            MessageBox.Show(this, "Speed Test Loggger for Windows V1.04.1" + Environment.NewLine + "Open-Source (AGPL v3)" + Environment.NewLine + "Copyright © 2015 a9t9", Text, MessageBoxButtons.OK, MessageBoxIcon.Information);
+            MessageBox.Show(this, "Speed Test Loggger for Windows V1.05" + Environment.NewLine + "Open-Source (AGPL v3)" + Environment.NewLine + "Copyright © 2015 a9t9", Text, MessageBoxButtons.OK, MessageBoxIcon.Information);
         }
 
         /// <summary>Occurs when the Exit menu item is clicked.</summary>
