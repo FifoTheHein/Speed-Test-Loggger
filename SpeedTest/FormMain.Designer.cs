@@ -413,7 +413,7 @@
             this.MinimumSize = new System.Drawing.Size(940, 650);
             this.Name = "FormMain";
             this.StartPosition = System.Windows.Forms.FormStartPosition.CenterScreen;
-            this.Text = "Speed Test Loggger for Windows - http://loggger.com";
+            this.Text = "Speed Test Loggger for Windows";
             this.ContainerMain.Panel1.ResumeLayout(false);
             this.ContainerMain.Panel2.ResumeLayout(false);
             ((System.ComponentModel.ISupportInitialize)(this.ContainerMain)).EndInit();
