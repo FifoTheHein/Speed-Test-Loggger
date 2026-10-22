@@ -356,14 +356,17 @@ namespace SpeedTest
                                 if (Settings.Default.SpeedUnits) e.Graphics.DrawLine(Pens.Green, lastPoint.X, lastPoint.Y, x, (Height - 61) - Global.Percent(itemSpeed, p_MaxBytes, Height - 80));
                                 else e.Graphics.DrawLine(Pens.Green, lastPoint.X, lastPoint.Y, x, (Height - 61) - Global.Percent(itemSpeed, p_MaxBits, Height - 80));
 
-                                if (Global.ConnectionLog[i].SubItems[3].Text.Equals("Logger Started"))
+                                // Local variables
+                                string change = GetConnectionChange(Global.ConnectionLog[i]);
+
+                                if (IsLoggerEvent(Global.ConnectionLog[i], "Logger Started"))
                                 {
                                     loggerPoints.Add(new PointF(x, 20));
                                     loggerPoints.Add(new PointF(x, Height - 60));
 
                                     e.Graphics.DrawLine(Pens.Yellow, x, 21, x, Height - 60);
                                 }
-                                else if (Global.ConnectionLog[i].SubItems[3].Text.Equals("Logger Stopped"))
+                                else if (IsLoggerEvent(Global.ConnectionLog[i], "Logger Stopped"))
                                 {
                                     loggerPoints.Add(new PointF(x, Height - 60));
                                     loggerPoints.Add(new PointF(x, 20));
@@ -376,7 +379,7 @@ namespace SpeedTest
 
                                     e.Graphics.DrawLine(Pens.Yellow, x, 21, x, Height - 60);
                                 }
-                                if (Global.ConnectionLog[i].SubItems[4].Text.Equals("Online"))
+                                if (change.Equals("Online"))
                                 {
                                     if (offlinePoints.Count == 0)
                                     {
@@ -394,7 +397,7 @@ namespace SpeedTest
                                     //online = true;
                                     onlineCount++;
                                 }
-                                else if (Global.ConnectionLog[i].SubItems[3].Text.Equals("Offline"))
+                                else if (change.Equals("Offline"))
                                 {
                                     if (offlinePoints.Count == 2)
                                     {
@@ -481,6 +484,25 @@ namespace SpeedTest
 
             // continue processing the event as usual
             base.OnResize(e);
+        }
+        #endregion
+        #region Private Methods
+        /// <summary>Gets the connection change logged in the specified row: "Online", "Offline", "IP Changed" or "-".</summary>
+        private static string GetConnectionChange(ListViewItem item)
+        {
+            string message = item.SubItems[3].Text;
+            string status = item.SubItems[4].Text;
+
+            // Rows logged before the column reorder hold the result (OK, Error, Offline) in Message and the change in Status
+            bool legacy = message.Equals("OK") || message.Equals("Error") || (message.Equals("Offline") && !status.Equals("Offline"));
+
+            return legacy ? status : message;
+        }
+
+        /// <summary>Gets a value indicating whether the specified row records the specified logger event, in either column.</summary>
+        private static bool IsLoggerEvent(ListViewItem item, string loggerEvent)
+        {
+            return item.SubItems[3].Text.Equals(loggerEvent) || item.SubItems[4].Text.Equals(loggerEvent);
         }
         #endregion
         #region Event Handlers
