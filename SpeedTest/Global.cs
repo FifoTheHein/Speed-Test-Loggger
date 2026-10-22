@@ -3,6 +3,7 @@
 using System;
 using System.Collections.Generic;
 using System.Drawing.Printing;
+using System.Globalization;
 using System.IO;
 using System.Runtime.InteropServices;
 using System.Net.NetworkInformation;
@@ -46,6 +47,12 @@ namespace SpeedTest
         // Global variables
         private static FormMain _gFormMain;
         private static List<ListViewItem> _gConnectionLog;
+
+        // Connection log load and save state
+        private static bool _gLogLoadFailed;
+        private static int _gSkippedLogRows;
+        private static bool _gLogBackedUp;
+        private static string _gLastSaveError;
         #endregion
         #region Properties
         /// <summary>Gets a value indicating whether Desktop Composition is enabled on the system.</summary>
@@ -68,6 +75,9 @@ namespace SpeedTest
 
         /// <summary>Gets the connection log associated with this application.</summary>
         public static List<ListViewItem> ConnectionLog => _gConnectionLog;
+
+        /// <summary>Gets the error from the last save of the connection log, or null if it succeeded.</summary>
+        public static string LastSaveError => _gLastSaveError;
 
         /// <summary>Gets a value determining if this computer is currently connected to the network.</summary>
         public static bool IsOnline
@@ -148,71 +158,24 @@ namespace SpeedTest
         /// <summary>Converts the specified bytes value into a human-readable string.</summary>
         public static string ConvertBytes(long bytes)
         {
-            try
+            return ConvertBytes(bytes, CultureInfo.CurrentCulture, "###,###,##0.00");
+        }
+
+        /// <summary>Converts the specified bytes value into a human-readable string, using the specified culture and number format.</summary>
+        private static string ConvertBytes(long bytes, IFormatProvider provider, string format)
+        {
+            // Bytes or bits, depending on the configured speed units
+            string[] units = Settings.Default.SpeedUnits ? new[] { "B", "KB", "MB", "GB", "TB" } : new[] { "b", "kb", "mb", "gb", "tb" };
+            double num = Settings.Default.SpeedUnits ? bytes : bytes * 8.0;
+            int unit = 0;
+
+            while (Math.Abs(num) >= 1024.0 && unit < units.Length - 1)
             {
-                if (Settings.Default.SpeedUnits)
-                {
-                    double num = bytes;
-                    if (num > Math.Pow(1024.0, 4.0))
-                    {
-                        num /= Math.Pow(1024.0, 4.0);
-                        return (Math.Round(num, 2).ToString("###,###,##0.00") + " TB");
-                    }
-                    if ((num > Math.Pow(1024.0, 3.0)) && (num < Math.Pow(1024.0, 4.0)))
-                    {
-                        num /= Math.Pow(1024.0, 3.0);
-                        return (Math.Round(num, 2).ToString("###,###,##0.00") + " GB");
-                    }
-                    if ((num > Math.Pow(1024.0, 2.0)) && (num < Math.Pow(1024.0, 3.0)))
-                    {
-                        num /= Math.Pow(1024.0, 2.0);
-                        return (Math.Round(num, 2).ToString("###,###,##0.00") + " MB");
-                    }
-                    if ((num > 1024.0) && (num < Math.Pow(1024.0, 2.0)))
-                    {
-                        num /= 1024.0;
-                        return (Math.Round(num, 2).ToString("###,###,##0.00") + " KB");
-                    }
-                    if (num < 1024.0)
-                    {
-                        return (Math.Round(num, 2).ToString("###,###,##0.00") + " B");
-                    }
-                }
-                else
-                {
-                    double num = bytes * 8;
-                    if (num > Math.Pow(1024.0, 4.0))
-                    {
-                        num /= Math.Pow(1024.0, 4.0);
-                        return (Math.Round(num, 2).ToString("###,###,##0.00") + " tb");
-                    }
-                    if ((num > Math.Pow(1024.0, 3.0)) && (num < Math.Pow(1024.0, 4.0)))
-                    {
-                        num /= Math.Pow(1024.0, 3.0);
-                        return (Math.Round(num, 2).ToString("###,###,##0.00") + " gb");
-                    }
-                    if ((num > Math.Pow(1024.0, 2.0)) && (num < Math.Pow(1024.0, 3.0)))
-                    {
-                        num /= Math.Pow(1024.0, 2.0);
-                        return (Math.Round(num, 2).ToString("###,###,##0.00") + " mb");
-                    }
-                    if ((num > 1024.0) && (num < Math.Pow(1024.0, 2.0)))
-                    {
-                        num /= 1024.0;
-                        return (Math.Round(num, 2).ToString("###,###,##0.00") + " kb");
-                    }
-                    if (num < 1024.0)
-                    {
-                        return (Math.Round(num, 2).ToString("###,###,##0.00") + " b");
-                    }
-                }
+                num /= 1024.0;
+                unit++;
             }
-            catch
-            {
-                if (Settings.Default.SpeedUnits) return "0 B";
-                else return "0 b";
-            }
-            return null;
+
+            return Math.Round(num, 2).ToString(format, provider) + " " + units[unit];
         }
 
         /// <summary>Converts the specified DateTime object into a human-readable string.</summary>
@@ -252,50 +215,73 @@ namespace SpeedTest
         {
             try
             {
-                if (File.Exists(fileName))
-                {
-                    using (var reader = new StreamReader(fileName))
-                    {
-                        var line = reader.ReadLine();
-
-                        while (!string.IsNullOrEmpty(line))
-                        {
-                            if (line.ToLower().StartsWith("index"))
-                            {
-                                line = reader.ReadLine();
-                                continue;
-                            }
-
-                            // Keep empty entries so columns stay aligned (e.g. an empty Filename)
-                            var s = line.Split(',');
-
-                            if (s.Length > 8)
-                            {
-                                var time = FromUnixTime(ToInt64(s[1]));
-
-                                var item = new ListViewItem(Global.ConvertTime(time)) // Time (String)
-                                {
-                                    ImageIndex = ToInt32(s[0]), // Index
-                                    Tag = time // Time (DateTime)
-                                };
-                                item.SubItems.Add(ConvertBytes(ToInt64(s[3]))); // Speed (String)
-                                item.SubItems.Add(s[4]); // IP
-                                item.SubItems.Add(s[5]); // Message
-                                item.SubItems.Add(s[6]); // Status
-                                item.SubItems.Add(s[7]); //Filename
-                                item.SubItems.Add(s[8]); // Speed (Bytes)
-
-                                _gConnectionLog.Add(item);
-                            }
-
-                            line = reader.ReadLine();
-                        }
-                    }
-                }
+                if (File.Exists(fileName)) _gConnectionLog.AddRange(ReadLogRows(fileName));
             }
             catch
             {
-                //Suppress
+                // The file exists but couldn't be read (e.g. it's locked). SaveConnectionLog reads it again before overwriting it.
+                _gLogLoadFailed = true;
+            }
+        }
+
+        /// <summary>Reads the rows of the specified connection log CSV file, counting any malformed rows it skips.</summary>
+        private static List<ListViewItem> ReadLogRows(string fileName)
+        {
+            var rows = new List<ListViewItem>();
+
+            using (var reader = new StreamReader(fileName))
+            {
+                string line;
+
+                while ((line = reader.ReadLine()) != null)
+                {
+                    // Skip blank lines and the header row
+                    if (string.IsNullOrWhiteSpace(line) || line.ToLower().StartsWith("index")) continue;
+
+                    var item = ParseLogRow(line);
+
+                    if (item != null) rows.Add(item);
+                    else _gSkippedLogRows++;
+                }
+            }
+
+            return rows;
+        }
+
+        /// <summary>Parses one row of the connection log CSV file, or returns null if the row is malformed.</summary>
+        private static ListViewItem ParseLogRow(string line)
+        {
+            try
+            {
+                // Keep empty entries so columns stay aligned (e.g. an empty Filename)
+                var s = line.Split(',');
+
+                if (s.Length < 9) return null;
+
+                // Only Speed(S) can contain commas (older versions formatted it with the PC's culture, e.g. "512,34 kb/s"),
+                // so read the first three columns from the front and the last five from the back
+                var last = s.Length - 5;
+                var time = FromUnixTime(ToInt64(s[1]));
+                var imageIndex = ToInt32(s[0]);
+                var speed = ToInt64(s[last + 4]);
+
+                var item = new ListViewItem(ConvertTime(time)) // Time (String)
+                {
+                    ImageIndex = imageIndex >= 0 && imageIndex <= 2 ? imageIndex : 0, // Index
+                    Tag = time // Time (DateTime)
+                };
+                item.SubItems.Add(ConvertBytes(speed) + "/s"); // Speed (String), rebuilt from Speed(B)
+                item.SubItems.Add(s[last]); // IP
+                item.SubItems.Add(s[last + 1]); // Message
+                item.SubItems.Add(s[last + 2]); // Status
+                item.SubItems.Add(s[last + 3]); // Filename
+                item.SubItems.Add(speed.ToString(CultureInfo.InvariantCulture)); // Speed (Bytes)
+
+                return item;
+            }
+            catch
+            {
+                return null;
             }
         }
 
@@ -318,43 +304,70 @@ namespace SpeedTest
             return Convert.ToInt32(result);
         }
 
-        /// <summary>Saves the connection log in CSV file format.</summary>
-        public static void SaveConnectionLog(string fileName)
+        /// <summary>Saves the connection log in CSV file format. Returns false if it couldn't be saved; LastSaveError then says why.</summary>
+        public static bool SaveConnectionLog(string fileName)
         {
             try
             {
-                using (var writer = new StreamWriter(fileName))
+                var folder = Path.GetDirectoryName(fileName);
+                if (!string.IsNullOrEmpty(folder)) Directory.CreateDirectory(folder);
+
+                // If the log couldn't be read at startup, read it now and put its rows before this session's.
+                // If it still can't be read, nothing is saved and the log stays in memory.
+                if (_gLogLoadFailed)
+                {
+                    if (File.Exists(fileName)) _gConnectionLog.InsertRange(0, ReadLogRows(fileName));
+                    _gLogLoadFailed = false;
+                }
+
+                // Keep a copy of a log with malformed rows before the first save drops them
+                if (_gSkippedLogRows > 0 && !_gLogBackedUp && File.Exists(fileName))
+                {
+                    File.Copy(fileName, fileName + "." + DateTime.Now.ToString("yyyyMMdd-HHmmss", CultureInfo.InvariantCulture) + ".bak");
+                }
+                _gLogBackedUp = true;
+
+                // Write to a temporary file first, so a crash or power cut mid-save can't destroy the log
+                var tempFile = fileName + ".tmp";
+
+                using (var writer = new StreamWriter(tempFile))
                 {
                     writer.WriteLine("Index,Time(U),Time(S),Speed(S),IP,Message,Status,Filename,Speed(B)");
 
                     foreach (var item in _gConnectionLog)
                     {
                         var time = (DateTime)item.Tag;
+                        var speed = ToInt64(item.SubItems[6].Text);
 
-                        writer.WriteLine(item.ImageIndex + "," + // Index
-                            ToUnixTime(time) + "," +             // Time (Unix Timestamp)
-                            ConvertTime(time) + "," +            // Time (String)
-                            item.SubItems[1].Text + "," +        // Speed (String)
-                            item.SubItems[2].Text + "," +        // IP
-                            item.SubItems[3].Text + "," +        // Message
-                            item.SubItems[4].Text + "," +         // Status
-                            item.SubItems[5].Text + "," +         // Filename
-                            item.SubItems[6].Text);              // Speed
-
-                        //Time
-                        //b/s
-                        //IP
-                        //Message
-                        //Status
-                        //Filename
-                        //Speed
+                        writer.WriteLine(item.ImageIndex + "," +                                                    // Index
+                            ToUnixTime(time) + "," +                                                                // Time (Unix Timestamp)
+                            CsvField(ConvertTime(time)) + "," +                                                     // Time (String)
+                            ConvertBytes(speed, CultureInfo.InvariantCulture, "0.00") + "/s," +                     // Speed (String), never with commas
+                            CsvField(item.SubItems[2].Text) + "," +                                                 // IP
+                            CsvField(item.SubItems[3].Text) + "," +                                                 // Message
+                            CsvField(item.SubItems[4].Text) + "," +                                                 // Status
+                            CsvField(item.SubItems[5].Text) + "," +                                                 // Filename
+                            speed.ToString(CultureInfo.InvariantCulture));                                          // Speed (Bytes)
                     }
                 }
+
+                if (File.Exists(fileName)) File.Replace(tempFile, fileName, null);
+                else File.Move(tempFile, fileName);
+
+                _gLastSaveError = null;
+                return true;
             }
             catch (Exception ex)
             {
-                MessageBox.Show(ex.ToString());
+                _gLastSaveError = ex.Message;
+                return false;
             }
+        }
+
+        /// <summary>Makes the specified text safe for one column of the CSV log by removing commas.</summary>
+        private static string CsvField(string text)
+        {
+            return string.IsNullOrEmpty(text) ? "n/a" : text.Replace(',', ' ');
         }
 
         /// <summary>Calculates a scalar value (0.0-1.0) given the specified values.</summary>
