@@ -343,7 +343,7 @@ namespace SpeedTest
             }
 
             // A few pixels of slack: if the spacer takes every last pixel, the toolbar moves the last button out of view
-            int width = Math.Max(0, ToolStripMain.DisplayRectangle.Width - used - ToolBarSpacer.Margin.Horizontal - 4);
+            int width = Math.Max(0, ToolStripMain.DisplayRectangle.Width - used - ToolBarSpacer.Margin.Horizontal - Theme.Scale(this, 4));
 
             // Changing the width lays the toolbar out again, so only change it when it differs
             if (ToolBarSpacer.Width != width) ToolBarSpacer.Width = width;

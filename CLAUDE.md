@@ -92,7 +92,15 @@ WinForms app on .NET Framework 4.8 (C#) that runs download speed tests on a sche
   - Use sample data only: a documentation IP such as `203.0.113.7`, default settings and a generic log path. Never the developer's real log, IP or user name, because the repo is public.
   - Capture with `PrintWindow` and `PW_RENDERFULLCONTENT` to get the real window frame, then crop the 7–8 px invisible resize border, which comes out black.
   - `DrawToBitmap` draws an old-style frame, so use it only for quick checks.
-- **Display scaling:** the app isn't DPI-aware, because forms use `AutoScaleMode.None`. Above 100% scaling, Windows stretches it slightly.
+- **Display scaling:** the app is per-monitor DPI-aware (PerMonitorV2).
+  - **Setup:** this comes from `DpiAwareness` in `App.config`, and needs Windows 10 listed in `app.manifest`. Forms use `AutoScaleMode.Dpi` with a 96-DPI base. `SpeedGraph` inherits it.
+  - **Your own pixel sizes:** anything drawn or sized in code (graph layout, icon sizes, padding) must go through `Theme.Scale(control, px)`, or `S()` in `SpeedGraph`. Write the 100% value and let it scale.
+  - **List columns:** WinForms doesn't scale them. `FormMain` does, in `ScaleColumns`.
+  - **Moving between monitors:** `FormMain.OnDpiChanged` rescales the columns and calls `ApplyThemeSizes` again for the new DPI.
+- **Testing scaling:**
+  - A reflection host (PowerShell) doesn't read the app's `App.config`, so WinForms reports 96 DPI there even when Windows scales the window. Check scaling by running the built exe itself and capturing its window from outside.
+  - End that process with `Stop-Process -Force` rather than closing it, so `OnFormClosing` doesn't save anything. Ask the user first: the window opens on their screen.
+  - Reflection tests that show `FormMain` should place it off-screen and `Dispose()` it, never `Close()` it.
 
 ## Building and testing
 
