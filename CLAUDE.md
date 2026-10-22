@@ -28,10 +28,22 @@ WinForms app on .NET Framework 4.8 (C#) that runs download speed tests on a sche
   - Older rows in existing logs may use the old values, such as Status "Online".
 - Never write an empty column: use "n/a". Don't split lines with `RemoveEmptyEntries`. An empty column once made the loader silently drop every row after it, and the next save erased them.
 - Never write culture-formatted numbers to the CSV. On a PC set to South Africa, "512,34 kb/s" adds a column. `SaveConnectionLog` writes Speed(S) in the invariant culture with no grouping, and passes text columns through `CsvField`.
-- The loader reads the first three columns from the front and the last five from the back. That recovers rows that older versions wrote with a comma in Speed(S). It rebuilds the speed text from Speed(B) and skips malformed rows instead of stopping.
+- The loader reads the first three columns from the front and the last five from the back. It rebuilds the speed text from Speed(B) and skips malformed rows instead of stopping.
+  - This recovers a row an older version wrote with a comma in Speed(S), but only if that row was never reloaded.
+  - Versions up to 1.4.1 reloaded and re-saved the log on every run, so on PCs with a comma decimal point, history from before then is already scrambled (speed 0, columns shifted). Don't promise users it's repaired.
 - Saves go to a `.tmp` file and then `File.Replace`, never straight over the log. If the log couldn't be read at startup, the first save reads it again first. If rows were skipped, the first save keeps a dated `.bak` copy.
 - In `FormMain`, add rows with `AddLogItem`. It shows the row, saves the log, and puts save errors in the status bar. Don't show dialogs from the logging loop.
 - Older rows, in the original a9t9 format, have the two swapped: Message holds the result ("OK", "Error", "Offline") and Status holds the change. Anything that reads the change, like the graph's offline shading, must handle both. Use `SpeedGraph.GetConnectionChange` and `IsLoggerEvent`.
+
+## Settings and startup
+
+- **Settings dialog:** only OK applies changes. Cancel, Esc and the close button discard them. OK checks custom URLs with `Global.TryGetWebUri`, which requires an absolute http or https address. Code that uses a URL setting checks it again, because older settings may predate the check.
+- **Auto-start:** `UpdateAutoStart` writes `Speed Test Loggger.cmd` to the Windows Startup folder.
+  - For a ClickOnce install, the script starts the app through its Start Menu `.appref-ms` shortcut, so ClickOnce checks for updates first.
+  - A `.appref-ms` can't pass `/start`, so the script first creates `%AppData%\SpeedTest\autostart.flag`. `Main` deletes the flag and starts logging if it's less than 10 minutes old.
+  - Paths under AppData are written as `%APPDATA%`, because cmd reads scripts in the OEM code page.
+  - Never launch the exe from ClickOnce's versioned `Apps\2.0` folder: that skips updates and breaks after one.
+- **Testing auto-start by reflection:** `Application.ExecutablePath` is the PowerShell exe, so the fallback script names `powershell.exe`. That's expected.
 
 ## Building and testing
 

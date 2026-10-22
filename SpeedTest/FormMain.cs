@@ -3,7 +3,9 @@
 using System;
 using System.Diagnostics;
 using System.Drawing;
+using System.Globalization;
 using System.IO;
+using System.Text;
 using System.Net;
 using System.Net.NetworkInformation;
 using System.Text.RegularExpressions;
@@ -280,7 +282,8 @@ namespace SpeedTest
             // Create a new FormSettings dialog and display it to the user
             using (FormSettings fs = new FormSettings())
             {
-                fs.ShowDialog(this);
+                // Apply the auto-start setting straight away, not only when the app closes
+                if (fs.ShowDialog(this) == DialogResult.OK) UpdateAutoStart();
             }
         }
 
@@ -563,10 +566,16 @@ namespace SpeedTest
 
                     webClient.DownloadDataAsync(FileUri, ip);
                 }
+                else if (Global.TryGetWebUri(Settings.Default.DownloadURL, out Uri downloadUri))
+                {
+                    FileUri = downloadUri;
+                    webClient.DownloadDataAsync(FileUri, ip);
+                }
                 else
                 {
-                    FileUri = new Uri(Settings.Default.DownloadURL);
-                    webClient.DownloadDataAsync(FileUri, ip);
+                    // Settings rejects invalid URLs, but the setting could predate that check
+                    StatusMain.Text = "Unable to test speed: the custom download URL in Configuration Settings isn't a valid web address";
+                    webClient.Dispose();
                 }
             }
             else // An error occured downloading the string
@@ -661,12 +670,20 @@ namespace SpeedTest
                 {
                     api = Settings.Default.IPDetectURL;
                 }
+
+                // Settings rejects invalid URLs, but the setting could predate that check
+                if (!Global.TryGetWebUri(api, out Uri apiUri))
+                {
+                    StatusMain.Text = "Unable to test speed: the custom IP lookup URL in Configuration Settings isn't a valid web address";
+                    return;
+                }
+
                 // Create a new WebClient object and download the string
                 CustomWebClient webClient = new CustomWebClient();
                 webClient.DownloadDataCompleted += webClient_DownloadDataCompleted;
                 webClient.DownloadProgressChanged += webClient_DownloadProgressChanged;
                 webClient.DownloadStringCompleted += webClient_DownloadStringCompleted;
-                webClient.DownloadStringAsync(new Uri(api));
+                webClient.DownloadStringAsync(apiUri);
             }
             else
             {
@@ -709,47 +726,65 @@ namespace SpeedTest
             }
         }
 
-        /// <summary>Adds or removes the aapplication from the Windows Startup folder.</summary>
+        /// <summary>Adds or removes the application from the Windows Startup folder.</summary>
         public void UpdateAutoStart()
         {
             try
             {
-                string batchPath = Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData) + Path.DirectorySeparatorChar + "SpeedTest" + Path.DirectorySeparatorChar + "SpeedTest.bat";
-                string shortcutPath = Environment.GetFolderPath(Environment.SpecialFolder.Startup) + Path.DirectorySeparatorChar + "SpeedTest.url";
-                //RegistryKey key = Registry.LocalMachine.OpenSubKey("Software\\Microsoft\\Windows\\CurrentVersion\\Run", true);
+                string startupFolder = Environment.GetFolderPath(Environment.SpecialFolder.Startup);
+                string startupScript = Path.Combine(startupFolder, "Speed Test Loggger.cmd");
 
-                if (Settings.Default.AutoStart)
+                // Remove what older versions created. They started the exe straight from ClickOnce's versioned folder,
+                // which skipped the update check and stopped working once an update removed that folder.
+                string oldBatch = Path.Combine(Global.AppDataFolder, "SpeedTest.bat");
+                string oldShortcut = Path.Combine(startupFolder, "SpeedTest.url");
+                if (File.Exists(oldBatch)) File.Delete(oldBatch);
+                if (File.Exists(oldShortcut)) File.Delete(oldShortcut);
+
+                if (!Settings.Default.AutoStart)
                 {
-                    // Create a batch file in the AppData folder
-                    using (StreamWriter writer = new StreamWriter(batchPath))
-                    {
-                        writer.WriteLine("@ECHO OFF");
-                        writer.WriteLine("start /d \"" + Application.StartupPath + "\" SpeedTestLoggger.exe \"/start\"");
-                    }
-
-                    // Create a shortcut in the Windows Startup folder
-                    using (StreamWriter writer = new StreamWriter(shortcutPath))
-                    {
-                        string appPath = Application.StartupPath + Path.DirectorySeparatorChar + "SpeedTest.exe";
-                        
-                        writer.WriteLine("[InternetShortcut]");
-                        writer.WriteLine("URL=file:///" + batchPath);
-                        writer.WriteLine("IconIndex=0");
-                        writer.WriteLine("IconFile=" + appPath.Replace(Path.DirectorySeparatorChar, '/'));
-                    }
-
-                    //key.SetValue("SpeedTest", "\"" + Application.ExecutablePath + "\" /start");
-                    //key.Close();
+                    if (File.Exists(startupScript)) File.Delete(startupScript);
+                    return;
                 }
-                else
-                {
-                    if (File.Exists(batchPath)) File.Delete(batchPath);
-                    if (File.Exists(shortcutPath)) File.Delete(shortcutPath);
 
-                    //key.DeleteValue("SpeedTest");
+                // cmd.exe reads scripts in the OEM code page, which can't hold every character in a user name,
+                // so write paths under the user's AppData folder as %APPDATA%
+                Encoding encoding = Encoding.GetEncoding(CultureInfo.CurrentCulture.TextInfo.OEMCodePage);
+                string appData = Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData);
+                string ForScript(string path) => path.StartsWith(appData, StringComparison.OrdinalIgnoreCase) ? "%APPDATA%" + path.Substring(appData.Length) : path;
+                string clickOnceShortcut = GetClickOnceShortcut();
+
+                using (StreamWriter writer = new StreamWriter(startupScript, false, encoding))
+                {
+                    writer.WriteLine("@ECHO OFF");
+
+                    if (clickOnceShortcut != null)
+                    {
+                        // Start through the Start Menu shortcut, so ClickOnce checks for updates first. The shortcut can't
+                        // pass /start, so leave a flag file that tells the app to start logging.
+                        writer.WriteLine("ECHO.> \"" + ForScript(Global.AutoStartFlagFile) + "\"");
+                        writer.WriteLine("START \"\" \"" + ForScript(clickOnceShortcut) + "\"");
+                    }
+                    else
+                    {
+                        // Not installed with ClickOnce (e.g. run from Visual Studio)
+                        writer.WriteLine("START \"\" \"" + Application.ExecutablePath + "\" /start");
+                    }
                 }
             }
             catch { }
+        }
+
+        /// <summary>Gets the path of the Start Menu shortcut ClickOnce created for this app, or null if it isn't installed with ClickOnce.</summary>
+        private static string GetClickOnceShortcut()
+        {
+            if (!System.Deployment.Application.ApplicationDeployment.IsNetworkDeployed) return null;
+
+            // ClickOnce names the shortcut after the product, under a folder named after the publisher
+            string name = Path.GetFileNameWithoutExtension(Application.ExecutablePath) + ".appref-ms";
+            string[] shortcuts = Directory.GetFiles(Environment.GetFolderPath(Environment.SpecialFolder.Programs), name, SearchOption.AllDirectories);
+
+            return shortcuts.Length > 0 ? shortcuts[0] : null;
         }
 
         /// <summary>Updates the ListView when the user shows or hides log messages.</summary>

@@ -41,6 +41,7 @@
             this.CheckAutoStart = new System.Windows.Forms.CheckBox();
             this.CheckMinimize = new System.Windows.Forms.CheckBox();
             this.ButtonOK = new System.Windows.Forms.Button();
+            this.ButtonCancel = new System.Windows.Forms.Button();
             this.ButtonOpenLog = new System.Windows.Forms.Button();
             this.TextDownloadURL = new System.Windows.Forms.TextBox();
             this.GroupDownloadURL = new System.Windows.Forms.GroupBox();
@@ -200,20 +201,32 @@
             this.ButtonOK.FlatStyle = System.Windows.Forms.FlatStyle.System;
             this.ButtonOK.Location = new System.Drawing.Point(12, 487);
             this.ButtonOK.Name = "ButtonOK";
-            this.ButtonOK.Size = new System.Drawing.Size(157, 26);
+            this.ButtonOK.Size = new System.Drawing.Size(102, 26);
             this.ButtonOK.TabIndex = 18;
             this.ButtonOK.Text = "&OK";
             this.ButtonOK.UseVisualStyleBackColor = true;
             this.ButtonOK.Click += new System.EventHandler(this.ButtonOK_Click);
-            // 
+            //
+            // ButtonCancel
+            //
+            this.ButtonCancel.Anchor = System.Windows.Forms.AnchorStyles.Top;
+            this.ButtonCancel.DialogResult = System.Windows.Forms.DialogResult.Cancel;
+            this.ButtonCancel.FlatStyle = System.Windows.Forms.FlatStyle.System;
+            this.ButtonCancel.Location = new System.Drawing.Point(120, 487);
+            this.ButtonCancel.Name = "ButtonCancel";
+            this.ButtonCancel.Size = new System.Drawing.Size(102, 26);
+            this.ButtonCancel.TabIndex = 19;
+            this.ButtonCancel.Text = "Cancel";
+            this.ButtonCancel.UseVisualStyleBackColor = true;
+            //
             // ButtonOpenLog
-            // 
+            //
             this.ButtonOpenLog.Anchor = System.Windows.Forms.AnchorStyles.Top;
             this.ButtonOpenLog.FlatStyle = System.Windows.Forms.FlatStyle.System;
-            this.ButtonOpenLog.Location = new System.Drawing.Point(175, 487);
+            this.ButtonOpenLog.Location = new System.Drawing.Point(228, 487);
             this.ButtonOpenLog.Name = "ButtonOpenLog";
-            this.ButtonOpenLog.Size = new System.Drawing.Size(157, 26);
-            this.ButtonOpenLog.TabIndex = 19;
+            this.ButtonOpenLog.Size = new System.Drawing.Size(104, 26);
+            this.ButtonOpenLog.TabIndex = 20;
             this.ButtonOpenLog.Text = "&Open Log File...";
             this.ButtonOpenLog.UseVisualStyleBackColor = true;
             this.ButtonOpenLog.Click += new System.EventHandler(this.ButtonOpenLog_Click);
@@ -358,12 +371,15 @@
             // 
             // FormSettings
             // 
+            this.AcceptButton = this.ButtonOK;
             this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.None;
+            this.CancelButton = this.ButtonCancel;
             this.ClientSize = new System.Drawing.Size(344, 529);
             this.Controls.Add(this.GroupAPIURL);
             this.Controls.Add(this.GroupSpeedUnits);
             this.Controls.Add(this.GroupDownloadURL);
             this.Controls.Add(this.ButtonOpenLog);
+            this.Controls.Add(this.ButtonCancel);
             this.Controls.Add(this.ButtonOK);
             this.Controls.Add(this.CheckMinimize);
             this.Controls.Add(this.CheckAutoStart);
@@ -410,6 +426,7 @@
         private System.Windows.Forms.CheckBox CheckAutoStart;
         private System.Windows.Forms.CheckBox CheckMinimize;
         private System.Windows.Forms.Button ButtonOK;
+        private System.Windows.Forms.Button ButtonCancel;
         private System.Windows.Forms.Button ButtonOpenLog;
         private System.Windows.Forms.TextBox TextDownloadURL;
         private System.Windows.Forms.GroupBox GroupDownloadURL;
