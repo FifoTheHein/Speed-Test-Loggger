@@ -42,4 +42,4 @@ The workflow signs with the certificate in the `SIGNING_PFX_BASE64` and `SIGNING
 
 ## License
 
-AGPL v3. See [LICENSE](LICENSE). This is a fork of [Speed Test Loggger](https://github.com/A9T9/Speed-Test-Loggger) by a9t9.
+AGPL v3. See [LICENSE](LICENSE). Based on [Speed Test Loggger](https://github.com/A9T9/Speed-Test-Loggger) by a9t9, Copyright © 2015 a9t9.

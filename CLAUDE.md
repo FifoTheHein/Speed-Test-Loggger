@@ -2,8 +2,8 @@
 
 WinForms app on .NET Framework 4.8 (C#) that runs download speed tests on a schedule, graphs them and logs outages. It's distributed with ClickOnce from GitHub Pages and updates itself.
 
-- **Repo:** `FifoTheHein/Speed-Test-Loggger`, a fork of `A9T9/Speed-Test-Loggger`. Always target the fork. PRs go into `master`.
-- **License:** AGPL v3. Keep the original author's credit, "Copyright © 2015 a9t9", in the About box and `AssemblyInfo.cs`. Don't point anything at loggger.com: that site isn't part of this fork.
+- **Repo:** `FifoTheHein/Speed-Test-Loggger`. It started as a fork of `A9T9/Speed-Test-Loggger` and was detached from it in October 2026, so it's a standalone repo now. PRs go into `master`.
+- **License:** AGPL v3. Keep the original author's credit, "Copyright © 2015 a9t9", in the About box, `AssemblyInfo.cs` and the README's License section. Don't point anything at loggger.com: that site isn't part of this project.
 - **Install and update URL:** `https://fifothehein.github.io/Speed-Test-Loggger/`. It's `fifothehein`, matching the owner name. A typo of it once broke this.
 
 ## Layout
@@ -155,7 +155,7 @@ ClickOnce manifests are signed with a self-signed certificate:
 
 ## Git workflow
 
-- **Branches and PRs:** never commit to `master` directly. Use a branch, a PR into `master` on the fork, and the user merges it. After the merge, update `master` locally. Delete merged branches when the user asks.
+- **Branches and PRs:** never commit to `master` directly. Use a branch, a PR into `master`, and the user merges it. After the merge, update `master` locally. Delete merged branches when the user asks.
 - **`.vs/` files:** some were committed by mistake, and Visual Studio rewrites them while it's open. Leave `.vs/` out of commits.
 - **Renovate:** it opens PRs that upgrade the workflow's actions.
 - **Repo settings:** GitHub Pages uses GitHub Actions as its source. The `github-pages` environment allows the `master` branch and `v*` tags to deploy.
