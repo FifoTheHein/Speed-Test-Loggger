@@ -8,9 +8,9 @@ using System.Runtime.InteropServices;
 [assembly: AssemblyTitle("Speed Test Logger for Windows")]
 [assembly: AssemblyDescription("Open-Source! Visual C#")]
 [assembly: AssemblyConfiguration("")]
-[assembly: AssemblyCompany("a9t9")]
+[assembly: AssemblyCompany("Heinrich J Nel")]
 [assembly: AssemblyProduct("Speed Test Logger for Windows")]
-[assembly: AssemblyCopyright("Copyright © 2015 a9t9")]
+[assembly: AssemblyCopyright("Copyright © 2015 a9t9, Copyright © 2026 Heinrich J Nel")]
 [assembly: AssemblyTrademark("")]
 [assembly: AssemblyCulture("")]
 
