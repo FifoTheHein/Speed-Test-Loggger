@@ -3,7 +3,7 @@
 WinForms app on .NET Framework 4.8 (C#) that runs download speed tests on a schedule, graphs them and logs outages. It's distributed with ClickOnce from GitHub Pages and updates itself.
 
 - **Repo:** `FifoTheHein/Speed-Test-Loggger`. It started as a fork of `A9T9/Speed-Test-Loggger` and was detached from it in October 2026, so it's a standalone repo now. PRs go into `master`.
-- **License:** AGPL v3. Keep the original author's credit, "Copyright © 2015 a9t9", in the About box, `AssemblyInfo.cs` and the README's License section. Don't point anything at loggger.com: that site isn't part of this project.
+- **License:** AGPL v3. Keep the original author's credit, "Copyright © 2015 a9t9", in the About box, `AssemblyInfo.cs` and the README's License section. The About box and `AssemblyCopyright` also carry "Copyright © 2026 Heinrich J Nel" for this project's changes, and `AssemblyCompany` is "Heinrich J Nel". Don't point anything at loggger.com: that site isn't part of this project.
 - **Install and update URL:** `https://fifothehein.github.io/Speed-Test-Loggger/`. It's `fifothehein`, matching the owner name. A typo of it once broke this.
 
 ## Layout
